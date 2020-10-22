@@ -1,0 +1,171 @@
+name: Storyteller
+description: A new Flutter project.
+
+# The following line prevents the package from being accidentally published to
+# pub.dev using `pub publish`. This is preferred for private packages.
+publish_to: "none" # Remove this line if you wish to publish to pub.dev
+
+# The following defines the version and build number for your application.
+# A version number is three numbers separated by dots, like 1.2.43
+# followed by an optional build number separated by a +.
+# Both the version and the builder number may be overridden in flutter
+# build by specifying --build-name and --build-number, respectively.
+# In Android, build-name is used as versionName while build-number used as versionCode.
+# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
+# In iOS, build-name is used as CFBundleShortVersionString while build-number used as CFBundleVersion.
+# Read more about iOS versioning at
+# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+version: 1.0.0+1
+
+environment:
+  sdk: ">=2.7.0 <3.0.0"
+
+dependencies:
+
+  flutter_secure_storage: ^3.2.1+1
+  cached_network_image: ^2.0.0-rc
+  oauth2: ^1.2.3
+  dependencies:
+  flutter:
+    sdk: flutter
+    
+  flutter_icons: ^1.1.0  
+  google_fonts: ^1.1.0    
+  flutter_staggered_grid_view: ^0.3.2  
+  photofilters: ^2.0.1  
+  responsive_grid: ^1.2.1+1  
+  open_app_settings: ^1.0.0  
+  flutter_splash_screen: ^0.1.0  
+  lottie: ^0.6.0
+  flutter_email_sender: ^3.0.1
+  flutter_html: ^0.8.2
+  flick_video_player: ^0.1.1
+  flutter_svg: ^0.19.0
+  video_thumbnail: ^0.2.2  
+  thumbnails: ^1.0.1
+  flutter_custom_dialog: ^1.0.20
+  bottom_navy_bar: ^5.5.0
+  slide_popup_dialog: ^0.0.2
+  blur_bottom_bar: ^1.0.1
+  bottom_indicator_bar: ^1.0.0
+  awesome_dialog: ^1.2.0
+  adaptive_dialog: ^0.7.5+3
+  modal_bottom_sheet: ^0.2.0+1 
+  bottom_navigation_badge: ^1.0.3
+  like_button: ^1.0.1
+  stretchy_header: ^1.0.8
+  sign_in_with_apple: ^2.5.2
+  nice_button: ^0.1.7
+  slider_button: ^0.6.0
+  flare_flutter: ^2.0.6
+  google_nav_bar: ^2.0.0
+  cupertino_icons: ^1.0.0
+  flutter_pagewise:
+  dio: ^3.0.10
+  image_picker: ^0.6.3
+  video_player: ^0.10.2+1
+  timeago: ^2.0.27
+  http:
+  rxdart: ^0.22.0
+  connectivity: ^0.4.6+2
+  bubble: ^1.1.9+1
+  expandable: ^4.0.2
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.16.0
+  intl_translation: ^0.17.7
+  geolocator: ^5.1.5
+  android_intent: ^0.3.4+8
+  provider: ^4.0.1
+  stack_trace: ^1.9.3
+  wc_form_validators: ^0.1.1
+  pull_to_refresh: ^1.5.8
+  circular_check_box: ^1.0.1
+  url_launcher: ^5.4.11
+  line_icons: ^0.2.0
+  characters: ^1.0.0
+  mime: ^0.9.7
+  cached_video_player: ^1.0.3
+
+dev_dependencies:
+  flutter_launcher_icons: "^0.7.3"
+  flutter_test:
+    sdk: flutter
+
+flutter_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/icon.png"
+
+module:
+  androidX: true
+# For information on the generic Dart part of this file, see the
+# following page: https://www.dartlang.org/tools/pub/pubspec
+
+# The following section is specific to Flutter.
+flutter:
+  # The following line ensures that the Material Icons font is
+  # included with your application, so that you can use the icons in
+  # the material Icons class.
+  uses-material-design: true
+
+  # To add assets to your application, add an assets section, like this:
+  assets:
+    - assets/
+    - assets/baricon/
+    - assets/icon/
+    - lang/en.json
+    - lang/es.json
+    - lang/fr.json
+    - lang/it.json
+    - lang/ru.json
+    - lang/zh.json
+
+  #  - images/a_dot_ham.jpeg
+
+  # An image asset can refer to one or more resolution-specific "variants", see
+  # https://flutter.dev/assets-and-images/#resolution-aware.
+
+  # For details regarding adding assets from package dependencies, see
+  # https://flutter.dev/assets-and-images/#from-packages
+
+  # To add custom fonts to your application, add a fonts section here,
+  # in this "flutter" section. Each entry in this list should have a
+  # "family" key with the font family name, and a "fonts" key with a
+  # list giving the asset and other descriptors for the font. For
+  # example:
+  fonts:
+    - family: SFProDisplayBold
+      fonts:
+        - asset: assets/fonts/SFProDisplay-Bold.ttf
+
+    - family: SFProDisplayMedium
+      fonts:
+        - asset: assets/fonts/SFProDisplay-Medium.ttf
+
+    - family: SFProDisplayThin
+      fonts:
+        - asset: assets/fonts/SFProDisplay-Thin.ttf
+
+    - family: SFProDisplaySemiBold
+      fonts:
+        - asset: assets/fonts/SFProDisplay-Semibold.ttf
+
+    - family: SFProDisplayRegular
+      fonts:
+        - asset: assets/fonts/SFProDisplay-Regular.ttf
+
+    - family: SFProDisplayBlack
+      fonts:
+        - asset: assets/fonts/SFProDisplay-Black.ttf
+
+    - family: SFProDisplayLight
+      fonts:
+        - asset: assets/fonts/SFProDisplay-Light.ttf
+
+    - family: SFProDisplayUltralight
+      fonts:
+        - asset: assets/fonts/SFProDisplay-Ultralight.ttf
+  #
+  # For details regarding fonts from package dependencies,
+  # see https://flutter.dev/custom-fonts/#from-packages
