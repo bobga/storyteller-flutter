@@ -1,6 +1,6 @@
 import 'package:cached_video_player/cached_video_player.dart';
 import 'package:flutter/material.dart';
-import 'package:line_icons/line_icons.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 
 class VideoClip extends StatefulWidget {
@@ -13,6 +13,9 @@ class VideoClip extends StatefulWidget {
 
 class _VideoClipState extends State<VideoClip> {
   CachedVideoPlayerController controller;
+  
+  bool showController = false;
+  
 
   @override
   void initState() {
@@ -39,6 +42,21 @@ class _VideoClipState extends State<VideoClip> {
     return Stack(
       alignment: Alignment.topLeft,
       children: [
+
+VisibilityDetector(
+   key: Key("unique key"),
+   onVisibilityChanged: (VisibilityInfo info) {
+       debugPrint("${info.visibleFraction} of my widget is visible");
+       if(info.visibleFraction == 2.0){
+           controller.play();
+                controller.setVolume(0);
+       }
+       else{
+           controller.play();
+                controller.setVolume(0);
+       }
+   },
+   child:
         GestureDetector(
           onTap: () {
             setState(() {
@@ -71,36 +89,35 @@ class _VideoClipState extends State<VideoClip> {
         ),
         ),
         ),
-        GestureDetector(
-          child:
+),
+        Positioned.fill(
+          child: Container(
+            alignment: Alignment.topLeft,
+            child:
+
+            AnimatedOpacity(
+      opacity: controller.value.isPlaying ? 0.0 : 1.0,
+      duration: Duration(milliseconds: 500),
+      child:
           Container(
-            decoration: new BoxDecoration(color: new Color.fromRGBO(0, 0, 0, 0.66), 
+          decoration: new BoxDecoration(
+            color: new Color.fromRGBO(0, 0, 0, 0.66),
             borderRadius: BorderRadius.circular(50),
-            ),
-            width: 25,
-            height: 25,
-            margin: EdgeInsets.only(top: 14.5, left: 14.5),
-          
+          ),
+          width: 25,
+          height: 25,
+          margin: EdgeInsets.only(left: 14.5, top: 14.5),
           child: Icon(
-            controller.value.isPlaying
-                ? Icons.pause
-                : Icons.play_arrow,
+            controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
+            color: Color.fromRGBO(255, 255, 255, 0.96),
             size: 15,
-            color: new Color.fromRGBO(255, 255, 255, 0.96),
           ),
-          ),
-          onTap: () {
-            setState(() {
-              if (controller.value.isPlaying) {
-                controller.pause();
-                controller.setVolume(0);
-              } else {
-                controller.play();
-                controller.setVolume(1);
-              }
-            });
-          },
+        ),
+          
         )
+
+      )
+        ),
       ],
     );
   }

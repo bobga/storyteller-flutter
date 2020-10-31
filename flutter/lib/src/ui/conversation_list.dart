@@ -18,6 +18,7 @@ class ConversationListForm extends StatefulWidget {
 }
 
 class StoryTellerConversationList extends State<ConversationListForm> {
+  
   TextEditingController messageController = TextEditingController();
 
   final int toUsernameController;
@@ -27,6 +28,7 @@ class StoryTellerConversationList extends State<ConversationListForm> {
   Timer timer;
 
   Future<bool> check() async {
+    
     var connectivityResult = await (Connectivity().checkConnectivity());
     if (connectivityResult == ConnectivityResult.mobile) {
       return true;
@@ -86,10 +88,16 @@ class StoryTellerConversationList extends State<ConversationListForm> {
   }
 
   Widget buildList() {
+    final screenSize = MediaQuery.of(context).size;
     return CustomScrollView(
       physics: BouncingScrollPhysics(),
       slivers: [
         SliverAppBar(
+          leading: Container(
+                        transform: Matrix4.translationValues(5.0, 0.0, 0.0),
+                        padding: EdgeInsets.only(left: 10.0, bottom: 0),
+                        child: BackButton(),
+                      ),
           elevation: 1.0,
           expandedHeight: kToolbarHeight,
           pinned: true,
@@ -98,7 +106,7 @@ class StoryTellerConversationList extends State<ConversationListForm> {
             AppLocalizations.instance.text('messages'),
             style: TextStyle(
               fontFamily: 'SFProDisplayBold',
-              fontSize: 25.0,
+              fontSize: 23.5,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -137,7 +145,102 @@ class StoryTellerConversationList extends State<ConversationListForm> {
                                 navigateToConversation(
                                     snapshot.data.datas[index].to.user.id);
                               },
-                              child: new ListTile(
+                              child: new 
+                              GestureDetector(
+                                onLongPress: () {
+                                      showModalBottomSheet<dynamic>(
+                                        backgroundColor: Colors.transparent,
+                                        isScrollControlled: true,
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(15.0)),
+                                        context: context,
+                                        builder: (BuildContext context) {
+                                          
+                                          return Wrap(children: <Widget>[
+                                            Container(
+                                              
+                                              decoration: new BoxDecoration(
+                                                  color: Colors.transparent,
+                                                  borderRadius:
+                                                      new BorderRadius.only(
+                                                          topLeft: const Radius
+                                                              .circular(30.0),
+                                                          topRight: const Radius
+                                                              .circular(30.0))),
+                                              child: Container(
+                                                
+                                                child: Column(
+                                                  children: <Widget>[
+                                                    new Column(
+                                                      mainAxisAlignment:
+                                                       MainAxisAlignment.center,
+                                                        children: [
+                                                          Container(
+                                                           // width: screenSize.width - 45,
+                                                            decoration: BoxDecoration(
+                                                               borderRadius: BorderRadius.circular(10),
+                                                            color: Colors.white,),
+                                                            child:
+                                                            Column(
+                                                      mainAxisAlignment:
+                                                       MainAxisAlignment.center,
+                                                        children: [
+                                                          ButtonTheme(
+                                                     minWidth: screenSize.width - 45.8,
+                                                      height: 56.0,
+                                                       child: FlatButton(
+                                                       child: Text(
+                                                       'Delete message',
+                                                       style: TextStyle(
+                                                       color: Colors.red,
+                                                       fontSize: 16.3,
+                                                       fontFamily: 'SFProDisplayMedium'),
+                                                       ),
+                                                        color: Colors.white,
+                                                        shape: new RoundedRectangleBorder(borderRadius: new BorderRadius.circular(10.0)),
+                                                        onPressed: () {
+                                                         Navigator.pop(context);
+                                                         }),
+                                                        ),
+                                                        ]
+                                                            )
+                                                            )
+
+                                                       ]),
+
+                                                     Container(height: 10),
+                                                     ButtonTheme(
+                                                     minWidth: screenSize.width - 45.8,
+                                                      height: 56.0,
+                                                       child: FlatButton(
+                                                       child: Text(
+                                                       AppLocalizations.instance.text('cancel'),
+                                                       style: TextStyle(
+                                                       color: Colors.black,
+                                                       fontSize: 16.3,
+                                                       fontFamily: 'SFProDisplayMedium'),
+                                                       ),
+                                                        color: Colors.white,
+                                                        shape: new RoundedRectangleBorder(borderRadius: new BorderRadius.circular(10.0)),
+                                                        onPressed: () {
+                                                         Navigator.pop(context);
+                                                         }),
+                                                        ),
+                                                        Container(height: 40),
+
+
+
+                                                  ],
+                                                ),
+                                              ),
+                                            )
+                                          ]);
+                                        },
+                                      );
+                                    },
+                                child:
+                              ListTile(
                                 leading: ClipRRect(
                                   borderRadius: new BorderRadius.circular(30.0),
                                   child: CachedNetworkImage(
@@ -186,6 +289,12 @@ class StoryTellerConversationList extends State<ConversationListForm> {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
+                            
+                              ),
+                              
+
+
+
                             ),
                           ),
                         ),

@@ -35,6 +35,8 @@
 	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>To upload photos in teling, you need to grant access to your camera.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Need to record audio for videos.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Teling needs access to location when open and in the background.</string>
 	<key>NSLocationAlwaysUsageDescription</key>

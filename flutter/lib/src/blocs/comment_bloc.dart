@@ -14,7 +14,7 @@ class ConversationBloc {
   final commentFetcherStatus = PublishSubject<MessageModel>();
   final userFetcher = PublishSubject<UserModel>();
 
-  Observable<UserModel> get userDetail => userFetcher.stream;
+  StreamView<UserModel> get userDetail => userFetcher.stream;
 
   StreamSubscription<CommentModel> _subscription;
 

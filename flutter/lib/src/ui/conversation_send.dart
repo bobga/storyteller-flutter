@@ -76,6 +76,11 @@ class StoryTellerConversationSend extends State<ConversationSendForm> {
       children: [
         Scaffold(
           appBar: AppBar(
+            leading: Container(
+                        transform: Matrix4.translationValues(5.0, 0.0, 0.0),
+                        padding: EdgeInsets.only(left: 10.0, bottom: 0),
+                        child: BackButton(),
+                      ),
             elevation: 1.0,
             centerTitle: false,
             title: StreamBuilder(
@@ -274,6 +279,7 @@ class StoryTellerConversationSend extends State<ConversationSendForm> {
                   child: Padding(
                     padding: EdgeInsets.only(left: 15),
                     child: TextField(
+                      autofocus:true,
                       maxLines: null,
                       textCapitalization: TextCapitalization.sentences,
                       onChanged: (value) {},
@@ -285,9 +291,11 @@ class StoryTellerConversationSend extends State<ConversationSendForm> {
                   ),
                 ),
                 IconButton(
+                  splashColor: Colors.transparent,
+                  highlightColor: Colors.transparent,
                   icon: Icon(LineIcons.paper_plane),
                   iconSize: 29.0,
-                  color: Color.fromRGBO(0, 0, 0, 1),
+                  color: Colors.blue,
                   onPressed: () async {
                     var message = Data.add(
                         0, widget.toUsernameController, messageController.text);

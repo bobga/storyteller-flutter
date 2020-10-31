@@ -1,3 +1,8 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:http/http.dart';
+import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:Storyteller/src/models/user_model.dart';
 import 'package:Storyteller/src/resources/repository.dart';
@@ -8,7 +13,7 @@ class LoginBloc {
   final repository = Repository();
   final userFetcher = PublishSubject<UserModel>();
 
-  Stream<UserModel> get getUser => userFetcher.stream;
+  StreamView<UserModel> get getUser => userFetcher.stream;
 
   fetchUserLogin() async {
     try {

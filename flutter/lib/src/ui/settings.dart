@@ -45,6 +45,11 @@ class StoryTellerSettings extends State<SettingsForm> {
             physics: BouncingScrollPhysics(),
             slivers: <Widget>[
               SliverAppBar(
+                leading: Container(
+                        transform: Matrix4.translationValues(5.0, 0.0, 0.0),
+                        padding: EdgeInsets.only(left: 10.0, bottom: 0),
+                        child: BackButton(),
+                      ),
                 elevation: 0.0,
                 expandedHeight: kToolbarHeight,
                 pinned: true,
@@ -53,7 +58,7 @@ class StoryTellerSettings extends State<SettingsForm> {
                   AppLocalizations.instance.text('settings'),
                   style: TextStyle(
                     fontFamily: 'SFProDisplayBold',
-                    fontSize: 25.0,
+                    fontSize: 23.5,
                   ),
                 ),
                 centerTitle: true,
@@ -65,136 +70,7 @@ class StoryTellerSettings extends State<SettingsForm> {
                       height: 20,
                     ),
                     
-                    InkWell(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => EditUserForm(),
-                          ),
-                        );
-                      },
-                      child: new Align(
-                        alignment: Alignment.center,
-                        child: ListTile(
-                          leading: Container(
-                            height: kToolbarHeight / 1.30,
-                            width: kToolbarHeight / 1.30,
-                            child: Icon(LineIcons.user),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).cardColor,
-                              borderRadius: BorderRadius.circular(50.0),
-                            ),
-                          ),
-                          title: Padding(
-                            padding: EdgeInsets.only(left: 3.0),
-                            child: Text(
-                              AppLocalizations.instance.text('editprofile'),
-                              
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                      height: 20,
-                    ),
-                    InkWell(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => EditCover(),
-                          ),
-                        );
-                      },
-                      child: new Align(
-                        alignment: Alignment.center,
-                        child: ListTile(
-                          leading: Container(
-                            height: kToolbarHeight / 1.30,
-                            width: kToolbarHeight / 1.30,
-                            child: Icon(LineIcons.image),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).cardColor,
-                              borderRadius: BorderRadius.circular(50.0),
-                            ),
-                          ),
-                          title: Padding(
-                            padding: EdgeInsets.only(left: 3.0),
-                            child: Text(
-                              AppLocalizations.instance.text('cover'),
-                              
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                      height: 20,
-                    ),
-                    InkWell(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => BlockedUsers(),
-                          ),
-                        );
-                      },
-                      child: new Align(
-                        alignment: Alignment.center,
-                        child: ListTile(
-                          leading: Container(
-                            height: kToolbarHeight / 1.30,
-                            width: kToolbarHeight / 1.30,
-                            child: Icon(LineIcons.users),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).cardColor,
-                              borderRadius: BorderRadius.circular(50.0),
-                            ),
-                          ),
-                          title: Padding(
-                            padding: EdgeInsets.only(left: 3.0),
-                            child: Text(
-                              AppLocalizations.instance.text('blockedusers'),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                      height: 20,
-                    ),
-                   
-                    InkWell(
-                      onTap: () async {
-                        await OpenAppSettings.openAppSettings();
-                      },
-                      child: new Align(
-                        alignment: Alignment.center,
-                        child: ListTile(
-                          leading: Container(
-                            height: kToolbarHeight / 1.30,
-                            width: kToolbarHeight / 1.30,
-                            child: Icon(LineIcons.language),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).cardColor,
-                              borderRadius: BorderRadius.circular(30.0),
-                            ),
-                          ),
-                          title: Padding(
-                            padding: EdgeInsets.only(left: 3.0),
-                            child: Text(
-                              AppLocalizations.instance.text('language'),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                      height: 20,
-                    ),
+                    
                     InkWell(
                       onTap: () {
                         showDialog(
@@ -259,16 +135,21 @@ class StoryTellerSettings extends State<SettingsForm> {
                           leading: Container(
                             height: kToolbarHeight / 1.30,
                             width: kToolbarHeight / 1.30,
-                            child: Icon(LineIcons.sign_out),
+                            child: Icon(LineIcons.sign_out, color: Colors.black),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).cardColor,
-                              borderRadius: BorderRadius.circular(50.0),
+                              color: Colors.transparent,
+                              //borderRadius: BorderRadius.circular(50.0),
                             ),
                           ),
                           title: Padding(
-                            padding: EdgeInsets.only(left: 3.0),
+                            padding: EdgeInsets.only(left: 0.0),
                             child: Text(
-                              AppLocalizations.instance.text('logout'),
+                              AppLocalizations.instance.text('logout',
+                              ),
+                              style: TextStyle(
+                                                       color: Colors.black,
+                                                       fontSize: 16.3,
+                                                       fontFamily: 'SFProDisplayMedium'),
                             ),
                           ),
                         ),
@@ -301,16 +182,20 @@ class StoryTellerSettings extends State<SettingsForm> {
                           leading: Container(
                             height: kToolbarHeight / 1.30,
                             width: kToolbarHeight / 1.30,
-                            child: Icon(LineIcons.check_circle),
+                            child: Icon(LineIcons.check_circle, color: Colors.black),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).cardColor,
-                              borderRadius: BorderRadius.circular(50.0),
+                              color: Colors.transparent,
+                            //  borderRadius: BorderRadius.circular(50.0),
                             ),
                           ),
                           title: Padding(
-                            padding: EdgeInsets.only(left: 3.0),
+                            padding: EdgeInsets.only(left: 0.0),
                             child: Text(
                               AppLocalizations.instance.text('verifiedprofile'),
+                              style: TextStyle(
+                                                       color: Colors.black,
+                                                       fontSize: 16.3,
+                                                       fontFamily: 'SFProDisplayMedium'),
                             ),
                           ),
                         ),
@@ -333,16 +218,20 @@ class StoryTellerSettings extends State<SettingsForm> {
                           leading: Container(
                             height: kToolbarHeight / 1.30,
                             width: kToolbarHeight / 1.30,
-                            child: Icon(LineIcons.clone),
+                            child: Icon(LineIcons.clone, color: Colors.black),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).cardColor,
-                              borderRadius: BorderRadius.circular(50.0),
+                              color: Colors.transparent,
+                             // borderRadius: BorderRadius.circular(50.0),
                             ),
                           ),
                           title: Padding(
-                            padding: EdgeInsets.only(left: 3.0),
+                            padding: EdgeInsets.only(left: 0.0),
                             child: Text(
                               AppLocalizations.instance.text('telingrules'),
+                              style: TextStyle(
+                                                       color: Colors.black,
+                                                       fontSize: 16.3,
+                                                       fontFamily: 'SFProDisplayMedium'),
                             ),
                           ),
                         ),
@@ -365,16 +254,20 @@ class StoryTellerSettings extends State<SettingsForm> {
                           leading: Container(
                             height: kToolbarHeight / 1.30,
                             width: kToolbarHeight / 1.30,
-                            child: Icon(LineIcons.at),
+                            child: Icon(LineIcons.at, color: Colors.black),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).cardColor,
-                              borderRadius: BorderRadius.circular(50.0),
+                              color: Colors.transparent,
+                              //borderRadius: BorderRadius.circular(50.0),
                             ),
                           ),
                           title: Padding(
-                            padding: EdgeInsets.only(left: 3.0),
+                            padding: EdgeInsets.only(left: 0.0),
                             child: Text(
                               AppLocalizations.instance.text('contactus'),
+                              style: TextStyle(
+                                                       color: Colors.black,
+                                                       fontSize: 16.3,
+                                                       fontFamily: 'SFProDisplayMedium'),
                             ),
                           ),
                         ),
@@ -397,16 +290,20 @@ class StoryTellerSettings extends State<SettingsForm> {
                           leading: Container(
                             height: kToolbarHeight / 1.30,
                             width: kToolbarHeight / 1.30,
-                            child: Icon(LineIcons.question_circle),
+                            child: Icon(LineIcons.question_circle, color: Colors.black),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).cardColor,
-                              borderRadius: BorderRadius.circular(50.0),
+                              color: Colors.transparent,
+                             // borderRadius: BorderRadius.circular(50.0),
                             ),
                           ),
                           title: Padding(
-                            padding: EdgeInsets.only(left: 3.0),
+                            padding: EdgeInsets.only(left: 0.0),
                             child: Text(
                               AppLocalizations.instance.text('faq'),
+                              style: TextStyle(
+                                                       color: Colors.black,
+                                                       fontSize: 16.3,
+                                                       fontFamily: 'SFProDisplayMedium'),
                             ),
                           ),
                         ),
@@ -430,16 +327,20 @@ class StoryTellerSettings extends State<SettingsForm> {
                           leading: Container(
                             height: kToolbarHeight / 1.30,
                             width: kToolbarHeight / 1.30,
-                            child: Icon(LineIcons.shield),
+                            child: Icon(LineIcons.shield, color: Colors.black),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).cardColor,
-                              borderRadius: BorderRadius.circular(50.0),
+                              color: Colors.transparent,
+                             // borderRadius: BorderRadius.circular(50.0),
                             ),
                           ),
                           title: Padding(
-                            padding: EdgeInsets.only(left: 3.0),
+                            padding: EdgeInsets.only(left: 0.0),
                             child: Text(
                               AppLocalizations.instance.text('privacy'),
+                              style: TextStyle(
+                                                       color: Colors.black,
+                                                       fontSize: 16.3,
+                                                       fontFamily: 'SFProDisplayMedium'),
                             ),
                           ),
                         ),
@@ -463,16 +364,20 @@ class StoryTellerSettings extends State<SettingsForm> {
                           leading: Container(
                             height: kToolbarHeight / 1.30,
                             width: kToolbarHeight / 1.30,
-                            child: Icon(LineIcons.balance_scale),
+                            child: Icon(LineIcons.balance_scale, color: Colors.black),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).cardColor,
-                              borderRadius: BorderRadius.circular(50.0),
+                              color: Colors.transparent,
+                             // borderRadius: BorderRadius.circular(50.0),
                             ),
                           ),
                           title: Padding(
-                            padding: EdgeInsets.only(left: 3.0),
+                            padding: EdgeInsets.only(left: 0.0),
                             child: Text(
                               AppLocalizations.instance.text('terms'),
+                              style: TextStyle(
+                                                       color: Colors.black,
+                                                       fontSize: 16.3,
+                                                       fontFamily: 'SFProDisplayMedium'),
                             ),
                           ),
                         ),
@@ -495,16 +400,20 @@ class StoryTellerSettings extends State<SettingsForm> {
                           leading: Container(
                             height: kToolbarHeight / 1.30,
                             width: kToolbarHeight / 1.30,
-                            child: Icon(LineIcons.exclamation_circle),
+                            child: Icon(LineIcons.exclamation_circle, color: Colors.black),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).cardColor,
-                              borderRadius: BorderRadius.circular(50.0),
+                              color: Colors.transparent,
+                             // borderRadius: BorderRadius.circular(50.0),
                             ),
                           ),
                           title: Padding(
-                            padding: EdgeInsets.only(left: 3.0),
+                            padding: EdgeInsets.only(left: 0.0),
                             child: Text(
                               AppLocalizations.instance.text('support'),
+                              style: TextStyle(
+                                                       color: Colors.black,
+                                                       fontSize: 16.3,
+                                                       fontFamily: 'SFProDisplayMedium'),
                             ),
                           ),
                         ),
@@ -557,8 +466,8 @@ class StoryTellerSettings extends State<SettingsForm> {
                                     AppLocalizations.instance
                                         .text('deleteprofile'),
                                     style: TextStyle(
-                                      color: Colors.red,
-                                    ),
+                                                       color: Colors.red,
+                                                       ),
                                   ),
                                   onPressed: () {
                                     check().then(
@@ -591,20 +500,22 @@ class StoryTellerSettings extends State<SettingsForm> {
                             height: kToolbarHeight / 1.30,
                             width: kToolbarHeight / 1.30,
                             child: Icon(
-                              LineIcons.hand_stop_o,
+                              LineIcons.hand_stop_o, color: Colors.black45
                             ),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).cardColor,
-                              borderRadius: BorderRadius.circular(50.0),
+                              color: Colors.transparent,
+                             // borderRadius: BorderRadius.circular(50.0),
                             ),
                           ),
                           title: Padding(
-                            padding: EdgeInsets.only(left: 3.0),
+                            padding: EdgeInsets.only(left: 0.0),
                             child: Text(
                               AppLocalizations.instance.text('deleteprofile'),
                               style: TextStyle(
-                                color: Colors.red,
-                              ),
+                                                       color: Colors.black45,
+                                                       fontSize: 16.3,
+                                                       fontFamily: 'SFProDisplayMedium'),
+                              
                             ),
                           ),
                         ),

@@ -1,5 +1,5 @@
 import 'dart:async';
-
+import 'package:Storyteller/src/ui/profile.dart';
 import 'package:Storyteller/app_localizations.dart';
 import 'package:Storyteller/src/models/comment_model.dart';
 import 'package:timeago/timeago.dart' as timeago;
@@ -9,6 +9,7 @@ import 'package:connectivity/connectivity.dart';
 import 'package:line_icons/line_icons.dart';
 import '../blocs/comment_bloc.dart';
 import 'globals.dart' as global;
+import 'package:extended_text_field/extended_text_field.dart';
 
 class Comments extends StatefulWidget {
   final int toPostIdController;
@@ -19,6 +20,7 @@ class Comments extends StatefulWidget {
 }
 
 class _Comments extends State<Comments> {
+  
   TextEditingController commentController = TextEditingController();
 
   StreamSubscription connectivitySubscription;
@@ -89,13 +91,19 @@ class _Comments extends State<Comments> {
     return Stack(
       children: [
         Scaffold(
+          
           appBar: AppBar(
+            leading: Container(
+                        transform: Matrix4.translationValues(5.0, 0.0, 0.0),
+                        padding: EdgeInsets.only(left: 10.0, bottom: 0),
+                        child: BackButton(),
+                      ),
             elevation: 0.6,
             title: Text(
               AppLocalizations.instance.text('comments'),
               style: TextStyle(
                 fontFamily: "SFProDisplayBold",
-                fontSize: 25.0,
+                fontSize: 23.5,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -127,13 +135,14 @@ class _Comments extends State<Comments> {
   }
 
   Widget buildList(AsyncSnapshot<CommentModel> snapshot) {
+    final screenSize = MediaQuery.of(context).size;
     print(snapshot.data.data.length);
     return Stack(
       children: <Widget>[
         Padding(
           padding: EdgeInsets.only(
-            top: 10,
-            bottom: 85.0,
+            top: 0,
+            bottom: 75.0,
             left: 10,
             right: 10,
           ),
@@ -142,24 +151,97 @@ class _Comments extends State<Comments> {
             reverse: false,
             itemCount: snapshot.data.data.length,
             itemBuilder: (BuildContext context, int index) {
+              final screenSize = MediaQuery.of(context).size;
               return Container(
+                margin: EdgeInsets.only(top: 5.0, bottom: 5),
+                child: 
+                Transform(
+                transform: Matrix4.translationValues(-6, 0.0, 0.0),
                 child: ListTile(
                   leading: ClipRRect(
                     borderRadius: new BorderRadius.circular(30.0),
-                    child: CachedNetworkImage(
+                    child: 
+                    
+                    GestureDetector(
+                                    onTap: () => {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              StorytellerProfile(
+                                                  snapshot.data.data[index].from.user
+                                                      .id,
+                                                  false,
+                                                  refresh),
+                                        ),
+                                      ),
+                                    },
+                                    child:
+                    CachedNetworkImage(
                       height: kToolbarHeight / 1.3,
                       width: kToolbarHeight / 1.3,
                       fit: BoxFit.cover,
                       imageUrl: (snapshot.data.data[index].from.user.avatar),
                     ),
-                  ),
-                  title: new Text(
-                    snapshot.data.data[index].comment,
-                    style: TextStyle(
-                      fontFamily: 'SFProDisplayRegular',
-                      color: Colors.black87,
                     ),
+
+
                   ),
+                  title: new Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+
+
+                    Row(children: [
+                      Container(
+                        width: screenSize.width - 155,
+                        
+                        child:
+                        new Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            SizedBox(
+                               width: screenSize.width - 155,
+                               child:
+                               Container (
+                                  alignment: Alignment.centerLeft,
+                                   margin: const EdgeInsets.only(left:0.0, top: 0, bottom: 5, right: 0.0,),
+                                   child: new Column (
+                                     children: <Widget>[
+                                       
+                                       RichText(
+                                         overflow: TextOverflow.ellipsis,
+                                         softWrap: true,
+                                         maxLines: 23,
+                                         text: TextSpan(
+                                           text: snapshot.data.data[index].from.user.name + ' ',
+                                            style:
+                                            TextStyle(fontFamily:"SFProDisplayBold",
+                                            fontSize:14.6, color: Color.fromRGBO(28, 28, 28, 1),
+                                            ),
+                                            children: <TextSpan>[
+                                              TextSpan(
+                                                 text: snapshot.data.data[index].comment,
+                                                  style:
+                                                  TextStyle(fontFamily:"SFProDisplayMedium",
+                                                   fontSize:14.6, color: Color.fromRGBO(28, 28, 28, 1),
+                                                   ),
+                                                   ),
+                                                   ],
+                                                   ),
+                                                   ),
+                                               ],
+                                          ),
+                                        ),
+                                      ),
+                                    ]
+                                  ),
+                                ),
+
+                  ]),
+
+
+                  ]),
                   subtitle: Row(
                     children: [
                       Text(
@@ -170,7 +252,7 @@ class _Comments extends State<Comments> {
                                     .toLocal(),
                                 locale: AppLocalizations.instance.mlangCode)
                             .replaceAll("ago", "")
-                            .replaceAll("moment", "few")
+                            .replaceAll("moment", "few seconds")
                             .replaceAll("minute", "m")
                             .replaceAll("hour", "h")
                             .replaceAll("day", "d")
@@ -196,7 +278,7 @@ class _Comments extends State<Comments> {
                         ),
                       ),
                       SizedBox(
-                        width: 12,
+                        width: 13.5,
                       ),
                       snapshot.data.data[index].from.user.id == global.userId
                           ? GestureDetector(
@@ -209,14 +291,17 @@ class _Comments extends State<Comments> {
                                 style: TextStyle(
                                   fontFamily: "SFProDisplayRegular",
                                   fontSize: 15,
-                                  color: Color.fromRGBO(220, 0, 0, 1),
+                                  color: Color.fromRGBO(120, 120, 120, 1),
                                 ),
                               ),
                             )
                           : Container(),
                     ],
                   ),
-                  trailing: GestureDetector(
+                  trailing: Transform(
+                transform: Matrix4.translationValues(6, 0.0, 0.0),
+                child:
+                  GestureDetector(
                     onTap: () {
                       if (snapshot.data.data[index].isLike == "true") {
                         bloc.unlike(
@@ -233,38 +318,71 @@ class _Comments extends State<Comments> {
                             color: Colors.black45,
                           ),
                   ),
+                  ),
+
+                ),
                 ),
                 padding: null,
               );
             },
           ),
         ),
+
+  
+Positioned(
+          left: 0.0,
+          bottom: 0.0,
+          child:
+           Container(
+             decoration: BoxDecoration(
+               color: Colors.white,
+               border: Border(
+                 top: BorderSide(
+                   color: Color.fromRGBO(224, 224, 224, 1),
+                   width: 1.0,
+                   ),
+               ),
+             ),
+             width: screenSize.width,
+             height: 77,
+           ),
+        ),
+
+
         Positioned(
           left: 15.0,
-          bottom: 22.0,
-          child: CircleAvatar(
-            radius: 20.0,
+          bottom: 14.0,
+          child:
+           CircleAvatar(
+            radius: 23.5,
             backgroundImage: new CachedNetworkImageProvider(
               (global.avatar),
             ),
           ),
         ),
         Positioned(
-          left: 65.0,
-          bottom: 22.0,
+          left: 70.0,
+          bottom: 14.0,
           right: 15.0,
-          child: Container(
+          child: 
+          
+
+          Container(
+            //height: 45,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(30.0),
               color: Theme.of(context).cardColor,
             ),
-            child: Row(
+            child: 
+            Row(
               children: <Widget>[
                 Expanded(
                   child: Padding(
                     padding: EdgeInsets.only(left: 15),
                     child: TextField(
+                      autofocus: true,
                       maxLines: null,
+                      enableInteractiveSelection: true,
                       textCapitalization: TextCapitalization.sentences,
                       onChanged: (value) {},
                       controller: commentController,
@@ -275,9 +393,11 @@ class _Comments extends State<Comments> {
                   ),
                 ),
                 IconButton(
+                  splashColor: Colors.transparent,
+                  highlightColor: Colors.transparent,
                   icon: Icon(LineIcons.paper_plane),
                   iconSize: 29.0,
-                  color: Color.fromRGBO(0, 0, 0, 1),
+                  color: Colors.blue,
                   onPressed: () async {
                     var message = Data.add(global.userId,
                         widget.toPostIdController, commentController.text);
@@ -288,6 +408,7 @@ class _Comments extends State<Comments> {
               ],
             ),
           ),
+
         ),
       ],
     );

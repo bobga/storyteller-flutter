@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:Storyteller/src/models/image_model.dart';
 import 'package:Storyteller/src/models/message_model.dart';
@@ -13,8 +16,8 @@ class ProfileBloc {
   final userFetcher = PublishSubject<UserModel>();
   final userFetcherStatus = PublishSubject<MessageModel>();
 
-  Observable<ImageModel> get allPhotos => photoFetcher.stream;
-  Observable<UserModel> get userDetail => userFetcher.stream;
+  StreamView<ImageModel> get allPhotos => photoFetcher.stream;
+  StreamView<UserModel> get userDetail => userFetcher.stream;
 
   dispose() async {
     await photoFetcher.drain();

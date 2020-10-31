@@ -16,7 +16,7 @@ class ConversationListBloc {
 
   ConversationListBloc() {
     conversationFetcher.stream;
-    _subscription = Observable<ConversationModel>.periodic(Duration(seconds: 1))
+    _subscription = Stream<ConversationModel>.periodic(Duration(seconds: 1))
         .listen((data) {});
   }
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:rxdart/rxdart.dart';
 import 'package:Storyteller/src/models/message_model.dart';
 import 'package:Storyteller/src/models/user_model.dart';
@@ -10,7 +12,7 @@ class UsersBloc {
   final userFetcher = PublishSubject<UserModel>();
   final userFetcherStatus = PublishSubject<MessageModel>();
 
-  Observable<UserModel> get allUsers => userFetcher.stream;
+  StreamView<UserModel> get allUsers => userFetcher.stream;
 
   dispose() async {
     await userFetcher.drain();

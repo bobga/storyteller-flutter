@@ -53,6 +53,11 @@ class _BlockedUsers extends State<BlockedUsers> {
             physics: BouncingScrollPhysics(),
             slivers: <Widget>[
               SliverAppBar(
+                leading: Container(
+                        transform: Matrix4.translationValues(5.0, 0.0, 0.0),
+                        padding: EdgeInsets.only(left: 10.0, bottom: 0),
+                        child: BackButton(),
+                      ),
                 elevation: 1.0,
                 expandedHeight: kToolbarHeight,
                 pinned: true,
@@ -103,7 +108,7 @@ class _BlockedUsers extends State<BlockedUsers> {
                                   fontFamily: 'SFProDisplayBold',
                                 ),
                               ),
-                              subtitle: new Text("blocked"),
+                              subtitle: new Text(AppLocalizations.instance.text('blockeduser'),),
                               trailing: ButtonTheme(
                                 height: kToolbarHeight / 1.7,
                                 minWidth:
@@ -114,9 +119,9 @@ class _BlockedUsers extends State<BlockedUsers> {
                                       borderRadius:
                                           new BorderRadius.circular(10.0)),
                                   child: new Text(
-                                    "Unblock",
+                                    AppLocalizations.instance.text('unblock'),
                                     style: new TextStyle(
-                                        fontSize: 16.5,
+                                        fontSize: 15.5,
                                         color: Colors.white,
                                         fontFamily: 'SFProDisplayRegular'),
                                   ),

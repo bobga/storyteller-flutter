@@ -1,3 +1,6 @@
+// import 'package:Storyteller/src/models/story_model.dart';
+import 'dart:async';
+
 import 'package:rxdart/rxdart.dart';
 import 'package:Storyteller/src/models/image_model.dart';
 import 'package:Storyteller/src/models/message_model.dart';
@@ -11,17 +14,24 @@ class PhotosBloc {
   final photoFetcher = PublishSubject<ImageModel>();
   final photoFetcherStatus = PublishSubject<MessageModel>();
   final userFetcher = PublishSubject<UserModel>();
+  final storyFetcher = PublishSubject<UserModel>();
+  // final storyListFetcher = PublishSubject<StoryModel>();
 
-  Observable<ImageModel> get allPhotos => photoFetcher.stream;
-  Observable<UserModel> get allUsers => userFetcher.stream;
-  Observable<UserModel> get userDetail => userFetcher.stream;
+  StreamView<ImageModel> get allPhotos => photoFetcher.stream;
+  StreamView<UserModel> get allStories => storyFetcher.stream;
+  StreamView<UserModel> get userDetail => userFetcher.stream;
+  // Observable<StoryModel> get allStoryList => storyListFetcher.stream;
 
   dispose() async {
     await photoFetcher.drain();
     await userFetcher.drain();
+    await storyFetcher.drain();
+    // await storyListFetcher.drain();
     userFetcher.close();
     photoFetcher.close();
+    storyFetcher.close();
     photoFetcherStatus.close();
+    // storyListFetcher.close();
   }
 
   fetchUser(int userid) async {
@@ -62,5 +72,20 @@ class PhotosBloc {
   reportpost(int postID) async {
     MessageModel imageModel = await repository.report(postID);
     photoFetcherStatus.sink.add(imageModel);
+  }
+
+  fetchStoryList() async {
+    UserModel userModel = await repository.fetchStoryUser();
+    storyFetcher.sink.add(userModel);
+  }
+
+  // fetchStories(int userId) async {
+  //   StoryModel storyModel = await repository.fetchStories(userId);
+  //   storyListFetcher.sink.add(storyModel);
+  // }
+
+  destoryStory(int id) async {
+    MessageModel storyModel = await repository.destoryStory(id);
+    photoFetcherStatus.sink.add(storyModel);
   }
 }

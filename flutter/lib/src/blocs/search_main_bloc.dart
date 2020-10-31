@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:Storyteller/src/models/user_model.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:Storyteller/src/models/image_model.dart';
@@ -12,8 +14,8 @@ class SearchMainBloc {
   final photoFetcherStatusSearch = PublishSubject<MessageModel>();
   final userFetcher = PublishSubject<UserModel>();
 
-  Observable<ImageModel> get allPhotos => photoFetcherSearch.stream;
-  Observable<UserModel> get userDetail => userFetcher.stream;
+  StreamView<ImageModel> get allPhotos => photoFetcherSearch.stream;
+  StreamView<UserModel> get userDetail => userFetcher.stream;
 
   dispose() async {
     await photoFetcherSearch.drain();

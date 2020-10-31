@@ -1,10 +1,12 @@
 import 'package:Storyteller/app_localizations.dart';
+import 'package:Storyteller/src/ui/stories.dart';
 import 'package:Storyteller/src/ui/video.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:Storyteller/src/models/image_model.dart';
+import 'package:Storyteller/src/models/user_model.dart';
 import 'package:Storyteller/src/ui/profile.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'conversation_list.dart';
@@ -22,6 +24,10 @@ import 'globals.dart' as global;
 import 'package:flutter_icons/flutter_icons.dart' as ico;
 import 'dart:math' as math;
 import 'package:Storyteller/src/ui/comments.dart';
+import 'package:pinch_zoom_image_last/pinch_zoom_image_last.dart';
+import 'package:flutter_vibrate/flutter_vibrate.dart';
+import 'package:progress_indicators/progress_indicators.dart';
+import 'package:page_transition/page_transition.dart';
 
 class PhotoFeed extends StatefulWidget {
   @override
@@ -31,6 +37,8 @@ class PhotoFeed extends StatefulWidget {
 }
 
 class NewsFeedState extends State<PhotoFeed> {
+  StreamSubscription connectivitySubscription;
+  Timer _timer, timer;
   final FlareControls flareControls = FlareControls();
   bool isLiked = false;
   RefreshController _refreshController =
@@ -50,6 +58,7 @@ class NewsFeedState extends State<PhotoFeed> {
   @override
   void initState() {
     super.initState();
+
     bloc.fetchUser(0);
     bloc.userDetail.listen(
       (data) {
@@ -73,6 +82,27 @@ class NewsFeedState extends State<PhotoFeed> {
             bloc.fetchAllPhoto();
           });
         }
+      },
+    );
+
+    const oneSec = const Duration(seconds: 1);
+    connectivitySubscription = Connectivity()
+        .onConnectivityChanged
+        .listen((ConnectivityResult result) {});
+
+    timer = Timer.periodic(
+      oneSec,
+      (timer) {
+        connectivitySubscription.resume();
+        check().then(
+          (internet) {
+            if (internet == false) {
+            } else {
+              bloc.fetchStoryList();
+              bloc.dispose();
+            }
+          },
+        );
       },
     );
   }
@@ -142,6 +172,46 @@ class NewsFeedState extends State<PhotoFeed> {
     );
   }
 
+  void likeShow() {
+    showDialog(
+        barrierColor: Colors.black.withOpacity(0.30),
+        barrierDismissible: false,
+        context: context,
+        builder: (BuildContext builderContext) {
+          _timer = Timer(Duration(milliseconds: 400), () {
+            Navigator.of(context).pop();
+          });
+
+          return Container(
+              height: 190,
+              width: 190,
+              color: Colors.transparent,
+              child: AlertDialog(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(900.0),
+                ),
+                title: Container(
+                  height: 190,
+                  width: 190,
+                  // padding: EdgeInsets.only(top: 40.0, bottom: 40),
+                  child: HeartbeatProgressIndicator(
+                    child: Icon(
+                      Icons.favorite,
+                      size: 80,
+                      color: Color.fromRGBO(255, 255, 255, 0.85),
+                    ),
+                  ),
+                ),
+              ));
+        }).then((val) {
+      if (_timer.isActive) {
+        _timer.cancel();
+      }
+    });
+  }
+
   checkFileType(String url) {
     String mimeStr = lookupMimeType(url);
     var fileType = mimeStr.split('/');
@@ -182,7 +252,167 @@ class NewsFeedState extends State<PhotoFeed> {
             ),
             elevation: 0.0,
           ),
-          body: buildList(),
+          body: Scaffold(
+            body: NestedScrollView(
+                headerSliverBuilder: (context, innerBoxIsScrolled) {
+                  return <Widget>[
+                    SliverAppBar(
+                      expandedHeight: 70,
+                      elevation: 0.6,
+                      centerTitle: false,
+                      automaticallyImplyLeading: false,
+                      backgroundColor: Colors.transparent,
+                      bottom: PreferredSize(
+                        preferredSize: Size(0.0, 48.0),
+                        child: Column(children: [
+                          Container(
+                            padding: const EdgeInsets.only(
+                              top: 0.0,
+                              bottom: 3.0,
+                              left: 10,
+                              right: 10,
+                            ),
+                            child: SizedBox(
+                              height: 90.0,
+                              child: StreamBuilder(
+                                stream: bloc.allStories,
+                                builder: (context,
+                                    AsyncSnapshot<UserModel> snapshot) {
+                                  if (snapshot.hasData) {
+                                    if (snapshot.data.datas.length == 0) {
+                                      return Center(
+                                        child: Text("No Stories"),
+                                      );
+                                    } else {
+                                      return ListView.builder(
+                                        scrollDirection: Axis.horizontal,
+                                        itemCount: snapshot.data.datas.length,
+                                        itemBuilder:
+                                            (BuildContext context, int index) {
+                                          return (isBlock(snapshot.data
+                                                          .datas[index].id) ==
+                                                      true) ||
+                                                  (isBlocked(snapshot
+                                                          .data
+                                                          .datas[index]
+                                                          .block) ==
+                                                      true)
+                                              ? Container()
+                                              : Row(
+                                                  children: [
+                                                    Padding(
+                                                      padding:
+                                                          const EdgeInsets.only(
+                                                              right: 10.0,
+                                                              left: 8.0),
+                                                      child: Column(
+                                                        children: [
+                                                          ClipRRect(
+                                                            borderRadius:
+                                                                new BorderRadius
+                                                                        .circular(
+                                                                    30.0),
+                                                            child:
+                                                                GestureDetector(
+                                                              child:
+                                                                  CachedNetworkImage(
+                                                                height:
+                                                                    kToolbarHeight /
+                                                                        0.9,
+                                                                width:
+                                                                    kToolbarHeight /
+                                                                        0.9,
+                                                                fit: BoxFit
+                                                                    .cover,
+                                                                placeholder:
+                                                                    (c, d) {
+                                                                  return Center(
+                                                                    child:
+                                                                        CircularProgressIndicator(
+                                                                      strokeWidth:
+                                                                          2.0,
+                                                                    ),
+                                                                  );
+                                                                },
+                                                                imageUrl: snapshot
+                                                                    .data
+                                                                    .datas[
+                                                                        index]
+                                                                    .avatar,
+                                                              ),
+                                                              onTap: () {
+                                                                
+                                                                Navigator.push(context, PageTransition(duration: Duration(milliseconds: 100), type: PageTransitionType.fade, child: Stories(snapshot
+                                                                            .data
+                                                                            .datas[index]
+                                                                            .id),));
+                                                              },
+                                                            ),
+                                                          ),
+                                                          Padding(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                        .only(
+                                                                    top: 4.0),
+                                                            child: SizedBox(
+                                                              child: Text(
+                                                                snapshot
+                                                                    .data
+                                                                    .datas[
+                                                                        index]
+                                                                    .name,
+                                                                style: TextStyle(
+                                                                    fontSize:
+                                                                        13),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ],
+                                                );
+                                        },
+                                      );
+                                    }
+                                  } else if (snapshot.hasError) {
+                                    return Center(
+                                      child: Text(snapshot.error.toString()),
+                                    );
+                                  }
+
+                                  return Center(
+          child: 
+          Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+          SizedBox(height: 10),
+          LinearProgressIndicator(
+            backgroundColor: Color.fromRGBO(255, 255, 255, 0.85),
+            minHeight: 2,
+          ),
+                                ]),
+        );
+                                },
+                              ),
+                            ),
+                          ),
+                          Divider(
+                            color: Color.fromRGBO(207, 207, 207, 0.60),
+                            height: 1,
+                            thickness: 0,
+                            indent: 0,
+                            endIndent: 0,
+                          ),
+                        ]),
+                      ),
+                      floating: false,
+                      pinned: false,
+                    ),
+                  ];
+                },
+                body: buildList()),
+          ),
         ),
         Container(
           height: MediaQuery.of(context).padding.top,
@@ -200,6 +430,7 @@ class NewsFeedState extends State<PhotoFeed> {
     final screenSize = MediaQuery.of(context).size;
     String mlangCode = AppLocalizations.instance.mlangCode;
     print("mlangCode = $mlangCode");
+
     return StreamBuilder(
       stream: bloc.allPhotos,
       builder: (context, AsyncSnapshot<ImageModel> snapshot) {
@@ -406,9 +637,9 @@ class NewsFeedState extends State<PhotoFeed> {
                                                                     ButtonTheme(
                                                                       minWidth:
                                                                           screenSize.width -
-                                                                              46,
+                                                                              45.8,
                                                                       height:
-                                                                          54.0,
+                                                                          56.0,
                                                                       child:
                                                                           FlatButton(
                                                                         // splashColor: Colors.transparent,
@@ -420,7 +651,7 @@ class NewsFeedState extends State<PhotoFeed> {
                                                                               .text('reportpost'),
                                                                           style: TextStyle(
                                                                               color: Colors.red,
-                                                                              fontSize: 15.0,
+                                                                              fontSize: 16.3,
                                                                               fontFamily: 'SFProDisplayMedium'),
                                                                         ),
                                                                         color: Colors
@@ -453,17 +684,16 @@ class NewsFeedState extends State<PhotoFeed> {
                                                                       height: 1,
                                                                       thickness:
                                                                           0,
-                                                                      indent:
-                                                                          20,
+                                                                      indent: 0,
                                                                       endIndent:
-                                                                          20,
+                                                                          0,
                                                                     ),
                                                                     ButtonTheme(
                                                                       minWidth:
                                                                           screenSize.width -
-                                                                              46,
+                                                                              45.8,
                                                                       height:
-                                                                          54.0,
+                                                                          56.0,
                                                                       child:
                                                                           FlatButton(
                                                                         //splashColor: Colors.transparent,
@@ -475,7 +705,7 @@ class NewsFeedState extends State<PhotoFeed> {
                                                                               .text('visitprofile'),
                                                                           style: TextStyle(
                                                                               color: Colors.black,
-                                                                              fontSize: 15.0,
+                                                                              fontSize: 16.3,
                                                                               fontFamily: 'SFProDisplayMedium'),
                                                                         ),
                                                                         color: Colors
@@ -506,17 +736,16 @@ class NewsFeedState extends State<PhotoFeed> {
                                                                       height: 1,
                                                                       thickness:
                                                                           0,
-                                                                      indent:
-                                                                          20,
+                                                                      indent: 0,
                                                                       endIndent:
-                                                                          20,
+                                                                          0,
                                                                     ),
                                                                     ButtonTheme(
                                                                       minWidth:
                                                                           screenSize.width -
-                                                                              46,
+                                                                              45.8,
                                                                       height:
-                                                                          54.0,
+                                                                          56.0,
                                                                       child:
                                                                           FlatButton(
                                                                         //splashColor: Colors.transparent,
@@ -528,7 +757,7 @@ class NewsFeedState extends State<PhotoFeed> {
                                                                               .text('share'),
                                                                           style: TextStyle(
                                                                               color: Colors.black,
-                                                                              fontSize: 15.0,
+                                                                              fontSize: 16.3,
                                                                               fontFamily: 'SFProDisplayMedium'),
                                                                         ),
                                                                         color: Colors
@@ -548,8 +777,9 @@ class NewsFeedState extends State<PhotoFeed> {
                                                     Container(height: 10),
                                                     ButtonTheme(
                                                       minWidth:
-                                                          screenSize.width - 45,
-                                                      height: 54.0,
+                                                          screenSize.width -
+                                                              45.8,
+                                                      height: 56.0,
                                                       child: FlatButton(
                                                           child: Text(
                                                             AppLocalizations
@@ -558,7 +788,7 @@ class NewsFeedState extends State<PhotoFeed> {
                                                             style: TextStyle(
                                                                 color: Colors
                                                                     .black,
-                                                                fontSize: 15.0,
+                                                                fontSize: 16.3,
                                                                 fontFamily:
                                                                     'SFProDisplayMedium'),
                                                           ),
@@ -591,6 +821,8 @@ class NewsFeedState extends State<PhotoFeed> {
                                           snapshot.data.data[index].id)
                                       : bloc.likepost(
                                           snapshot.data.data[index].id);
+                                          Vibrate.feedback(FeedbackType.medium);
+                                          likeShow();
                                 },
                                 child: Stack(children: <Widget>[
                                   Container(
@@ -606,23 +838,31 @@ class NewsFeedState extends State<PhotoFeed> {
                                           child: checkFileType(snapshot.data
                                                       .data[index].image) ==
                                                   "image"
-                                              ? CachedNetworkImage(
-                                                  width: screenSize.width,
-                                                  placeholder: (c, d) {
-                                                    return Center(
-                                                      child:
-                                                          CircularProgressIndicator(
-                                                        strokeWidth: 2.0,
-                                                      ),
-                                                    );
-                                                  },
-                                                  fit: BoxFit.cover,
-                                                  imageUrl: snapshot
-                                                      .data.data[index].image,
+                                              ? PinchZoomImage(
+                                                  image: CachedNetworkImage(
+                                                    width: screenSize.width,
+                                                    placeholder: (c, d) {
+                                                      return Center(
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                          strokeWidth: 2.0,
+                                                        ),
+                                                      );
+                                                    },
+                                                    fit: BoxFit.cover,
+                                                    imageUrl: snapshot
+                                                        .data.data[index].image,
+                                                  ),
+                                                  zoomedBackgroundColor:
+                                                      Color.fromRGBO(
+                                                          240, 240, 240, 0.50),
                                                 )
-                                              : VideoClip(
-                                                  url: snapshot
-                                                      .data.data[index].image,
+                                              : Container(
+                                                  width: screenSize.width,
+                                                  child: VideoClip(
+                                                    url: snapshot
+                                                        .data.data[index].image,
+                                                  ),
                                                 ),
                                         ),
                                       ),
@@ -692,7 +932,7 @@ class NewsFeedState extends State<PhotoFeed> {
                               Container(
                                 padding: const EdgeInsets.only(bottom: 10.0),
                                 child: const Divider(
-                                  color: Color.fromRGBO(224, 224, 224, 1),
+                                  color: Color.fromRGBO(207, 207, 207, 1),
                                   height: 1,
                                   thickness: 0,
                                   indent: 16,
@@ -827,7 +1067,7 @@ class NewsFeedState extends State<PhotoFeed> {
                               Container(
                                 padding: const EdgeInsets.only(bottom: 10.0),
                                 child: const Divider(
-                                  color: Color.fromRGBO(224, 224, 224, 1),
+                                  color: Color.fromRGBO(207, 207, 207, 1),
                                   height: 1,
                                   thickness: 0,
                                   indent: 0,

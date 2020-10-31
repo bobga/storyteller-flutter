@@ -1,4 +1,5 @@
 import 'package:Storyteller/src/models/user_model.dart';
+import 'package:Storyteller/src/models/comment_model.dart';
 
 class ImageModel {
   List<Data> datas = [];
@@ -22,6 +23,7 @@ class Data {
   String description;
   int likes;
   String like;
+  CommentModel from;
   int likecount;
   String createdat;
   String updatedat;

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:Storyteller/src/models/user_model.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:Storyteller/src/models/message_model.dart';
@@ -12,9 +14,9 @@ class NotificationsBloc {
   final userFetcherStatus = PublishSubject<MessageModel>();
   final userFetcher = PublishSubject<UserModel>();
 
-  Observable<NotificationModel> get allNotifications =>
+  StreamView<NotificationModel> get allNotifications =>
       notificationFetcher.stream;
-  Observable<UserModel> get userDetail => userFetcher.stream;
+  StreamView<UserModel> get userDetail => userFetcher.stream;
 
   dispose() async {
     await notificationFetcher.drain();

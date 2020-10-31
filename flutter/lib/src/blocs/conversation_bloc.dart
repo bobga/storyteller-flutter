@@ -4,6 +4,7 @@ import 'package:rxdart/rxdart.dart';
 import 'package:Storyteller/src/models/conversation_model.dart';
 import 'package:Storyteller/src/models/message_model.dart';
 import 'package:Storyteller/src/resources/repository.dart';
+import 'package:Storyteller/src/models/user_model.dart';
 
 final bloc = ConversationBloc();
 
@@ -11,6 +12,10 @@ class ConversationBloc {
   final repository = Repository();
   final conversationFetcher = PublishSubject<ConversationModel>();
   final conversationFetcherStatus = PublishSubject<MessageModel>();
+  final userFetcher = PublishSubject<UserModel>();
+  
+  StreamView<UserModel> get allUsers => userFetcher.stream;
+  StreamView<UserModel> get userDetail => userFetcher.stream;
 
   StreamSubscription<ConversationModel> _subscription;
 
@@ -23,6 +28,14 @@ class ConversationBloc {
     conversationFetcher.close();
     conversationFetcherStatus.close();
     _subscription.cancel();
+    await userFetcher.drain();
+    userFetcher.close();
+  }
+
+   fetchUser(int userid) async {
+    UserModel userModel = await repository.getUser(userid);
+    userFetcher.sink.add(userModel);
+    bloc.dispose();
   }
 
   fetchUserConversation(toUsernameController) async {

@@ -75,6 +75,11 @@ class StoryTellerEditProfile extends State<EditUserForm> {
                     physics: BouncingScrollPhysics(),
                     slivers: <Widget>[
                       SliverAppBar(
+                        leading: Container(
+                        transform: Matrix4.translationValues(5.0, 0.0, 0.0),
+                        padding: EdgeInsets.only(left: 10.0, bottom: 0),
+                        child: BackButton(),
+                      ),
                         elevation: 1.0,
                         expandedHeight: kToolbarHeight,
                         pinned: true,

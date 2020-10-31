@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:rxdart/rxdart.dart';
 import 'package:Storyteller/src/models/message_model.dart';
 import 'package:Storyteller/src/models/user_model.dart';
@@ -8,7 +10,7 @@ final bloc = SignUpBloc();
 class SignUpBloc {
   final repository = Repository();
   final resetFetcher = PublishSubject<MessageModel>();
-  Stream<MessageModel> get getMessage => resetFetcher.stream;
+  StreamView<MessageModel> get getMessage => resetFetcher.stream;
 
   userSignup(User user) async {
     try {

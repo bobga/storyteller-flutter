@@ -3,6 +3,7 @@ import 'package:Storyteller/src/models/comment_model.dart' as comment;
 import 'package:Storyteller/src/models/image_model.dart';
 import 'package:Storyteller/src/models/message_model.dart';
 import 'package:Storyteller/src/models/notification_model.dart';
+// import 'package:Storyteller/src/models/story_model.dart';
 import 'package:Storyteller/src/models/user_model.dart';
 
 import 'story_teller_api_provider.dart';
@@ -68,6 +69,14 @@ class Repository {
 
   Future<MessageModel> report(int postID) =>
       storyTellerApiProvider.report(postID);
+
+  Future<UserModel> fetchStoryUser() => storyTellerApiProvider.fetchStoryUser();
+
+  // Future<StoryModel> fetchStories(int userId) =>
+  //     storyTellerApiProvider.fetchStories(userId);
+
+  Future<MessageModel> destoryStory(int id) =>
+      storyTellerApiProvider.destoryStory(id);
 
   Future<NotificationModel> fetchAllNotifications() =>
       storyTellerApiProvider.fetchAllNotifications();

@@ -2,12 +2,13 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
 
+import 'package:image_cropper/image_cropper.dart';
 import 'package:Storyteller/app_localizations.dart';
 import 'package:Storyteller/src/constant/httpService.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:Storyteller/src/models/image_model.dart';
+import 'package:flutter_icons/flutter_icons.dart';
 import 'package:Storyteller/src/constant/utils.dart';
 import 'package:video_player/video_player.dart';
 import 'package:wc_form_validators/wc_form_validators.dart';
@@ -71,14 +72,100 @@ class StoryTellerAddPhoto extends State<PhotoForm> {
     return Form(
       key: _formKey3,
       child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          elevation: 0.6,
+                        backgroundColor: Colors.white,
+                        centerTitle: false,
+                        title: Text(
+                          'New post',
+                          style: TextStyle(
+                            fontFamily: 'SFProDisplayBold',
+                            fontSize: 33.0,
+                          ),
+                        ),
+    actions: <Widget>[
+    Padding(
+      padding: EdgeInsets.only(right: 20.0),
+      child: GestureDetector(
+        onTap: () {},
+        child: 
+        Container(
+          margin: EdgeInsets.only(bottom: 11.0, top: 11.0),
+          child:
+        ButtonTheme(
+          splashColor: Colors.transparent,
+           highlightColor: Colors.transparent,
+                  height: kToolbarHeight / 1.10,
+                  minWidth: 60,
+                  child:
+                  FlatButton(
+                    splashColor: Colors.transparent,
+                     highlightColor: Colors.transparent,
+                      color: _media == null ? Colors.black12 : Colors.black,
+                      shape: new RoundedRectangleBorder(
+                          borderRadius: new BorderRadius.circular(10.0)),
+                      child: isLoading == false
+                          ? new Text(
+                              AppLocalizations.instance.text('publish'),
+                              style: new TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15.0,
+                                  fontFamily: 'SFProDisplayMedium'),
+                            )
+                          : CircularProgressIndicator(
+                              strokeWidth: 2.0,
+                              valueColor: new AlwaysStoppedAnimation<Color>(
+                                  Colors.white),
+                            ),
+                      onPressed: () {
+                        check().then((internet) async {
+                          if (internet == false) {
+                          } else {
+                            if (_formKey3.currentState.validate() == true) {
+                              if (_media == null) return;
+                              setState(() {
+                                isLoading = true;
+                              });
+                              
+                            }
+                          }
+                        });
+                        if (_media != null) {
+                    sendUploadFile(descriptionController.text);
+                    Scaffold.of(context).showSnackBar(
+                      SnackBar(
+                        elevation: 0,
+                        backgroundColor: Colors.black,
+                        content: Text(
+                          "Your post will be visible in a couple of seconds.",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                                fontFamily: "SFProDisplayBold",
+                                 fontSize: 13,
+                              ),
+                        ),
+                        duration: Duration(seconds: 10),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
+                      }),
+        ),
+        ),
+        ),
+      )
+    ]
+                      ),
+        
         body: Padding(
-          padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+          padding: EdgeInsets.only(top: 0),
           child: SingleChildScrollView(
             physics: BouncingScrollPhysics(),
             child: Column(
               children: [
                 SizedBox(
-                  height: 20.0,
+                  height: 0.0,
                 ),
                 Stack(
                   alignment: Alignment.center,
@@ -86,16 +173,124 @@ class StoryTellerAddPhoto extends State<PhotoForm> {
                     Container(
                       margin: EdgeInsets.only(left: 0, right: 0),
                       width: screenSize.width,
-                      
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(0),
                         color: Colors.transparent,
                       ),
                       child: _media == null
-                          ? Container(
-                            margin:
-                                                        const EdgeInsets.only(
-                                                            top: 200),
+                          ? 
+                          Center(
+                            child:
+                           Column( 
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: <Widget>[ 
+                          Row( 
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: <Widget>[
+                          Container(
+                              margin: const EdgeInsets.only(top: 150),
+                              child: Center(
+                                child: Container(
+                                  height: kToolbarHeight * 1.80,
+                                  width: kToolbarHeight * 1.80,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.all(
+                                      Radius.circular(50.0),
+                                    ),
+                                    color: Theme.of(context).canvasColor,
+                                  ),
+                                  child: new Material(
+                                    color: Colors.black,
+                                    borderRadius: BorderRadius.all(
+                                      Radius.circular(50.0),
+                                    ),
+                                    child: InkWell(
+                                      borderRadius: BorderRadius.all(
+                                        Radius.circular(50.0),
+                                      ),
+                                      onTap: () async {
+                         PickedFile pickedFile = await ImagePicker().getImage(
+                         source: ImageSource.camera,
+                           maxWidth: 1800,
+                            maxHeight: 1800,
+                            );
+                             _cropImage(pickedFile.path);
+                        
+                      },
+                                      child: Center(
+                                        child: Icon(
+                                          Feather.camera,
+                                          size: kToolbarHeight * 0.65,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 25),
+                            Container(
+                              margin: const EdgeInsets.only(top: 150),
+                              child: Center(
+                                child: Container(
+                                  height: kToolbarHeight * 1.80,
+                                  width: kToolbarHeight * 1.80,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.all(
+                                      Radius.circular(50.0),
+                                    ),
+                                    color: Theme.of(context).canvasColor,
+                                  ),
+                                  child: new Material(
+                                    color: Colors.black,
+                                    borderRadius: BorderRadius.all(
+                                      Radius.circular(50.0),
+                                    ),
+                                    child: InkWell(
+                                      borderRadius: BorderRadius.all(
+                                        Radius.circular(50.0),
+                                      ),
+                                      onTap: () async {
+                                        isVideo = true;
+                        Future<File> video2 =
+                            ImagePicker.pickVideo(source: ImageSource.camera);
+
+                        video2.then((file) async {
+                          setState(() {
+                            _media = file;
+                            _controller = VideoPlayerController.file(_media)
+                              ..initialize().then(
+                                (_) {
+                                  setState(() {});
+                                  _controller.setLooping(true);
+                                },
+                              );
+                          });
+                          
+                        });
+                      },
+                                    
+                                      child: Center(
+                                        child: Icon(
+                                          Feather.video,
+                                          color: Colors.white,
+                                          size: kToolbarHeight * 0.65,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            ]),
+
+
+                          Row( 
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: <Widget>[
+                          Container(
+                              margin: const EdgeInsets.only(top: 30),
                               child: Center(
                                 child: Container(
                                   height: kToolbarHeight * 1.80,
@@ -115,13 +310,18 @@ class StoryTellerAddPhoto extends State<PhotoForm> {
                                       borderRadius: BorderRadius.all(
                                         Radius.circular(50.0),
                                       ),
-                                      onTap: () => {
-                                        checkMediaType(),
-                                        // _getImage(),
-                                      },
+                                      onTap: () async {
+                         PickedFile pickedFile = await ImagePicker().getImage(
+                         source: ImageSource.gallery,
+                           maxWidth: 1800,
+                            maxHeight: 1800,
+                            );
+                             _cropImage(pickedFile.path);
+                        
+                      },
                                       child: Center(
                                         child: Icon(
-                                          LineIcons.upload,
+                                          Feather.image,
                                           size: kToolbarHeight * 0.65,
                                         ),
                                       ),
@@ -129,7 +329,69 @@ class StoryTellerAddPhoto extends State<PhotoForm> {
                                   ),
                                 ),
                               ),
-                            )
+                            ),
+                            
+                            SizedBox(width: 25),
+                            Container(
+                              margin: const EdgeInsets.only(top: 30),
+                              child: Center(
+                                child: Container(
+                                  height: kToolbarHeight * 1.80,
+                                  width: kToolbarHeight * 1.80,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.all(
+                                      Radius.circular(50.0),
+                                    ),
+                                    color: Theme.of(context).canvasColor,
+                                  ),
+                                  child: new Material(
+                                    color: Theme.of(context).cardColor,
+                                    borderRadius: BorderRadius.all(
+                                      Radius.circular(50.0),
+                                    ),
+                                    child: InkWell(
+                                      borderRadius: BorderRadius.all(
+                                        Radius.circular(50.0),
+                                      ),
+                                      onTap: () async {
+                                        isVideo = true;
+                                     Future<File>   video1 =
+                            ImagePicker.pickVideo(source: ImageSource.gallery);
+
+                        video1.then((file) async {
+                          setState(() {
+                            _media = file;
+                            _controller = VideoPlayerController.file(_media)
+                              ..initialize().then(
+                                (_) {
+                                  setState(() {});
+                                  _controller.setLooping(true);
+                                  _controller.play();
+                                  _controller.setVolume(0);
+                                },
+                              );
+                          });
+                          
+                       });
+                      },
+                                      child: Center(
+                                        child: Icon(
+                                          Feather.upload,
+                                          size: kToolbarHeight * 0.65,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                          ])
+                            ])
+                          )
+
+
+
                           : ClipRRect(
                               borderRadius: BorderRadius.circular(0),
                               child: isVideo == false
@@ -169,13 +431,18 @@ class StoryTellerAddPhoto extends State<PhotoForm> {
                             },
                           )
                         : Container(),
+
+
                   ],
                 ),
                 SizedBox(
                   height: 30.0,
                 ),
-                Padding(
-                  padding: EdgeInsets.only(left: 10.0, right: 10.0),
+                _media == null
+                
+                ? Container()
+                : Padding(
+                  padding: EdgeInsets.only(left: 20.0, right: 20.0),
                   child: TextFormField(
                     inputFormatters: [
                       new LengthLimitingTextInputFormatter(200),
@@ -205,80 +472,19 @@ class StoryTellerAddPhoto extends State<PhotoForm> {
                     ),
                   ),
                 ),
-                Container(
-                  margin: EdgeInsets.only(top:10, right: 15),
-                  child:
-                Align(
-                  alignment: Alignment.bottomRight,
-                  child: Text('200', textAlign: TextAlign.right, 
-                  style:TextStyle(color: Colors.black38,
-                    fontFamily:"SFProDisplayBold",fontSize:13,),)
-                ),
-                ),
-
-
-                SizedBox(
-                  height: 20.0,
-                ),
-                ButtonTheme(
-                  height: kToolbarHeight / 1.10,
-                  minWidth: screenSize.width - 80,
-                  
-                  child: FlatButton(
-                      color: Color.fromRGBO(0, 141, 252, 1),
-                      shape: new RoundedRectangleBorder(
-                          borderRadius: new BorderRadius.circular(10.0)),
-                      child: isLoading == false
-                          ? new Text(
-                              AppLocalizations.instance.text('publish'),
-                              style: new TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 17.0,
-                                  fontFamily: 'SFProDisplayBold'),
-                            )
-                          : CircularProgressIndicator(
-                                    strokeWidth: 2.0,
-                                    valueColor:
-                                        new AlwaysStoppedAnimation<Color>(
-                                            Colors.white),
-                                  ),
-                      onPressed: () {
-                        check().then((internet) async {
-                          if (internet == false) {
-                          } else {
-                            if (_formKey3.currentState.validate() == true) {
-                              if (_media == null) return;
-                              setState(() {
-                                isLoading = true;
-                              });
-                              sendUploadFile(descriptionController.text);
-
-                              // String base64Image =
-                              //     base64Encode(_media.readAsBytesSync());
-                              // var image = Data.add(
-                              //   1,
-                              //   base64Image,
-                              //   1,
-                              //   1,
-                              //   descriptionController.text,
-                              // );
-                              // bloc.saveImage(image);
-                              // savedShow();
-                            }
-                          }
-                        });
-                      }),
-                ),
-                SizedBox(
-                  height: 20.0,
-                ),
+                
               ],
             ),
           ),
+          
         ),
+
+        
       ),
     );
   }
+
+  
 
   void savedShow() {
     showDialog(
@@ -311,11 +517,14 @@ class StoryTellerAddPhoto extends State<PhotoForm> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: new Text(AppLocalizations.instance.text('fromwhere'), style: TextStyle(
-                fontFamily: 'SFProDisplayBold',
-                fontSize: 23.5,
-                fontWeight: FontWeight.bold,
-              ),),
+          title: new Text(
+            AppLocalizations.instance.text('fromwhere'),
+            style: TextStyle(
+              fontFamily: 'SFProDisplayBold',
+              fontSize: 23.5,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           content: new Text(
             AppLocalizations.instance.text('selectfile'),
             textAlign: TextAlign.left,
@@ -330,7 +539,9 @@ class StoryTellerAddPhoto extends State<PhotoForm> {
                 isVideo = false;
                 _getImage();
               },
-              child: new Text(AppLocalizations.instance.text('image'),),
+              child: new Text(
+                AppLocalizations.instance.text('image'),
+              ),
             ),
             new FlatButton(
               onPressed: () {
@@ -338,7 +549,9 @@ class StoryTellerAddPhoto extends State<PhotoForm> {
                 isVideo = true;
                 _getVideo();
               },
-              child: new Text(AppLocalizations.instance.text('video'),),
+              child: new Text(
+                AppLocalizations.instance.text('video'),
+              ),
             )
           ],
         );
@@ -382,12 +595,13 @@ class StoryTellerAddPhoto extends State<PhotoForm> {
                         ),
                       ),
                       onPressed: () async {
-                        var image1 = await ImagePicker.pickImage(
-                            source: ImageSource.gallery, imageQuality: 100);
-                        Navigator.pop(context);
-                        setState(() {
-                          _media = image1;
-                        });
+                         PickedFile pickedFile = await ImagePicker().getImage(
+                         source: ImageSource.gallery,
+                           maxWidth: 1800,
+                            maxHeight: 1800,
+                            );
+                             _cropImage(pickedFile.path);
+                        
                       },
                     ),
                     new FlatButton(
@@ -399,12 +613,13 @@ class StoryTellerAddPhoto extends State<PhotoForm> {
                         ),
                       ),
                       onPressed: () async {
-                        var image2 = await ImagePicker.pickImage(
-                            source: ImageSource.camera, imageQuality: 100);
-                        Navigator.pop(context);
-                        setState(() {
-                          _media = image2;
-                        });
+                         PickedFile pickedFile = await ImagePicker().getImage(
+                         source: ImageSource.camera,
+                           maxWidth: 1800,
+                            maxHeight: 1800,
+                            );
+                             _cropImage(pickedFile.path);
+                        
                       },
                     ),
                     new FlatButton(
@@ -483,7 +698,33 @@ class StoryTellerAddPhoto extends State<PhotoForm> {
                         });
                       },
                     ),
-                    
+                    FlatButton(
+                      child: new Text(
+                        "Camera",
+                        style: TextStyle(
+                          fontFamily: 'SFProDisplayMedium',
+                          color: Color.fromRGBO(0, 141, 252, 1),
+                        ),
+                      ),
+                      onPressed: () async {
+                        Future<File> video2 =
+                            ImagePicker.pickVideo(source: ImageSource.camera);
+
+                        video2.then((file) async {
+                          setState(() {
+                            _media = file;
+                            _controller = VideoPlayerController.file(_media)
+                              ..initialize().then(
+                                (_) {
+                                  setState(() {});
+                                  _controller.setLooping(true);
+                                },
+                              );
+                          });
+                          Navigator.pop(context);
+                        });
+                      },
+                    ),
                     new FlatButton(
                       child: new Text(
                         AppLocalizations.instance.text('cancel'),
@@ -502,6 +743,52 @@ class StoryTellerAddPhoto extends State<PhotoForm> {
         },
       );
     } catch (error) {}
+  }
+
+  _cropImage(filePath) async {
+    File croppedImage = await ImageCropper.cropImage(
+      sourcePath: filePath,
+      maxWidth: 1080,
+      maxHeight: 1080,
+      aspectRatioPresets: Platform.isAndroid
+            ? [
+                CropAspectRatioPreset.square,
+                //CropAspectRatioPreset.ratio3x2,
+                //CropAspectRatioPreset.original,
+                CropAspectRatioPreset.ratio4x3,
+                // CropAspectRatioPreset.ratio16x9
+              ]
+            : [
+                // CropAspectRatioPreset.original,
+                CropAspectRatioPreset.square,
+                // CropAspectRatioPreset.ratio3x2,
+                CropAspectRatioPreset.ratio4x3,
+                // CropAspectRatioPreset.ratio5x3,
+                CropAspectRatioPreset.ratio5x4,
+                
+                //CropAspectRatioPreset.ratio7x5,
+                // CropAspectRatioPreset.ratio16x9
+              ],
+              
+         iosUiSettings: IOSUiSettings(
+         //title: 'Crop Image',
+         cancelButtonTitle: 'Cancel',
+         doneButtonTitle: 'Done',
+         rectX: 1,
+         rectY: 1,
+         rectWidth: 19080,
+         rectHeight: 19080,
+         hidesNavigationBar: true,
+         resetButtonHidden: true,
+         minimumAspectRatio: 1.0,
+         // rotateClockwiseButtonHidden: true,
+        )
+    );
+    if (croppedImage != null) {
+      _media = croppedImage;
+      setState(() {});
+      
+    }
   }
 
   Future<String> fetchToken() async {

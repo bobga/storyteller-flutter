@@ -1,4 +1,5 @@
 import 'package:Storyteller/src/models/user_model.dart';
+// import 'package:Storyteller/src/models/image_model.dart';
 
 class CommentModel {
   List<Data> datas = [];
@@ -26,8 +27,10 @@ class Data {
   UserModel from;
   int like;
   String isLike;
+  int likecount;
   String createdAt;
   String updatedAt;
+  String badge;
 
   Data(parsedJson) {
     id = parsedJson['id'];
@@ -37,8 +40,10 @@ class Data {
     from = UserModel.fromJson(parsedJson['from']);
     like = parsedJson['like'];
     isLike = parsedJson['is_like'];
+    likecount = parsedJson['like_count'];
     createdAt = parsedJson['created_at'];
     updatedAt = parsedJson['updated_at'];
+    badge = parsedJson['badge'];
   }
 
   Data.add(int userId, int postId, String comment) {

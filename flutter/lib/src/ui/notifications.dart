@@ -10,6 +10,8 @@ import 'conversation_send.dart';
 import 'dart:async';
 import 'package:flutter_icons/flutter_icons.dart';
 import 'globals.dart' as global;
+import 'package:Storyteller/src/ui/video_notifications.dart';
+import 'package:mime/mime.dart';
 
 class StoryTellerNotification extends StatefulWidget {
   @override
@@ -73,6 +75,13 @@ class PagewiseGridViewExample extends State<StoryTellerNotification> {
   void dispose() {
     bloc.dispose();
     super.dispose();
+  }
+
+  checkFileType(String url) {
+    String mimeStr = lookupMimeType(url);
+    var fileType = mimeStr.split('/');
+    print(fileType[0]);
+    return fileType[0];
   }
 
   refresh() {}
@@ -146,13 +155,28 @@ class PagewiseGridViewExample extends State<StoryTellerNotification> {
                     (BuildContext context, int index) {
                       dynamic notificationdata =
                           json.decode(snapshot.data.datas[index].data);
-                      print(snapshot.data.datas[index].data);
+                     // print(snapshot.data.datas[index].data);
                       switch (snapshot.data.datas[index].type) {
                         case "App\\Notifications\\StartedToFollowNotification":
                           return isBlock(notificationdata["user"]["id"]) ==
                                   false
                               ? InkWell(
-                                  child: ListTile(
+                                  child: 
+                                  GestureDetector(
+                                    onTap: () => {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              StorytellerProfile(
+                                                 notificationdata["user"]["id"],
+                                                  false,
+                                                  refresh),
+                                        ),
+                                      ),
+                                    },
+                                    child:
+                                  ListTile(
                                     leading: ClipRRect(
                                       borderRadius:
                                           new BorderRadius.circular(30.0),
@@ -174,7 +198,8 @@ class PagewiseGridViewExample extends State<StoryTellerNotification> {
                                       AppLocalizations.instance
                                           .text('startfollow'),
                                     ),
-                                  ),
+                                  ),),
+
                                   onTap: () {
                                     Navigator.push(
                                       context,
@@ -216,6 +241,63 @@ class PagewiseGridViewExample extends State<StoryTellerNotification> {
                                     AppLocalizations.instance.text('likedpost'),
                                   ),
                                   trailing: ClipRRect(
+                                          borderRadius:
+                                              new BorderRadius.circular(0.0),
+                                          child: checkFileType(notificationdata["post"]
+                                                            ["image"],) ==
+                                                  "image"
+                                              ? CachedNetworkImage(
+                                                  width: kToolbarHeight / 1.2,
+                                                  height: kToolbarHeight / 1.2,
+                                                  placeholder: (c, d) {
+                                                    return Center(
+                                                      child:
+                                                          CircularProgressIndicator(
+                                                        strokeWidth: 2.0,
+                                                      ),
+                                                    );
+                                                  },
+                                                  fit: BoxFit.cover,
+                                                  imageUrl: notificationdata["post"]
+                                                            ["image"],
+                                                )
+                                              : Container(
+                                                width: kToolbarHeight / 1.2,
+                                                height: kToolbarHeight / 1.2,
+                                                child:VideoClip(
+                                                  url: notificationdata["post"]
+                                                            ["image"],
+                                                ),),
+                                        ),
+                                )
+                              : Container();
+
+                              break;
+                        case "App\\Notifications\\NewComment":
+                          return isBlock(notificationdata["user"]["id"]) ==
+                                  false
+                              ? ListTile(
+                                  leading: ClipRRect(
+                                    borderRadius:
+                                        new BorderRadius.circular(30.0),
+                                    child: CachedNetworkImage(
+                                      height: kToolbarHeight / 1,
+                                      width: kToolbarHeight / 1,
+                                      fit: BoxFit.cover,
+                                      imageUrl: (notificationdata["user"]
+                                          ["avatar"]),
+                                    ),
+                                  ),
+                                  title: new Text(
+                                    notificationdata["user"]["name"],
+                                    style: TextStyle(
+                                      fontFamily: 'SFProDisplayBold',
+                                    ),
+                                  ),
+                                  subtitle: new Text(
+                                    'New comment',
+                                  ),
+                                  trailing: ClipRRect(
                                     borderRadius:
                                         new BorderRadius.circular(10.0),
                                     child: CachedNetworkImage(
@@ -228,6 +310,8 @@ class PagewiseGridViewExample extends State<StoryTellerNotification> {
                                   ),
                                 )
                               : Container();
+
+                              
 
                           break;
                         case "App\\Notifications\\NewConversation":
@@ -268,7 +352,8 @@ class PagewiseGridViewExample extends State<StoryTellerNotification> {
                                                 new BorderRadius.circular(
                                                     10.0)),
                                         child: new Text(
-                                          "Message",
+                                          AppLocalizations.instance
+                                          .text('respond'),
                                           style: new TextStyle(
                                               fontSize: 16.5,
                                               color: Colors.white,
@@ -303,6 +388,7 @@ class PagewiseGridViewExample extends State<StoryTellerNotification> {
                                     );
                                   },
                                 )
+                                
                               : Container();
 
                           break;

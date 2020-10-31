@@ -15,9 +15,13 @@ import 'package:mime/mime.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'globals.dart' as global;
 import 'package:flutter_icons/flutter_icons.dart' as ico;
-import 'dart:math' as math;
+import 'dart:math' as math; 
 import 'package:Storyteller/src/ui/comments.dart';
 import 'package:flutter_icons/flutter_icons.dart';
+import 'package:lottie/lottie.dart';
+import 'package:pinch_zoom_image_last/pinch_zoom_image_last.dart';
+import 'package:flutter_vibrate/flutter_vibrate.dart';
+import 'package:progress_indicators/progress_indicators.dart';
 
 class SearchTabPhoto extends StatefulWidget {
   @override
@@ -25,6 +29,7 @@ class SearchTabPhoto extends StatefulWidget {
 }
 
 class _HomePageState extends State<SearchTabPhoto> {
+   Timer _timer;
   RefreshController _refreshController =
       RefreshController(initialRefresh: false);
   Future<bool> check() async {
@@ -77,9 +82,9 @@ class _HomePageState extends State<SearchTabPhoto> {
             AppLocalizations.instance.text('seccessreport'),
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Colors.black,
-              fontSize: 15.0,
-            ),
+                   color: Colors.black,
+                   fontSize: 15.0,
+             ),
           ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15.0),
@@ -107,6 +112,46 @@ class _HomePageState extends State<SearchTabPhoto> {
     );
   }
 
+void likeShow() {
+    showDialog(
+        barrierColor: Colors.black.withOpacity(0.30),
+        barrierDismissible: false,
+        context: context,
+        builder: (BuildContext builderContext) {
+          _timer = Timer(Duration(milliseconds: 400), () {
+            Navigator.of(context).pop();
+          });
+
+          return Container(
+              height: 190,
+              width: 190,
+              color: Colors.transparent,
+              child: AlertDialog(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(900.0),
+                ),
+                title: Container(
+                  height: 190,
+                  width: 190,
+                  // padding: EdgeInsets.only(top: 40.0, bottom: 40),
+                  child: HeartbeatProgressIndicator(
+                    child: Icon(
+                      Icons.favorite,
+                      size: 80,
+                      color: Color.fromRGBO(255, 255, 255, 0.85),
+                    ),
+                  ),
+                ),
+              ));
+        }).then((val) {
+      if (_timer.isActive) {
+        _timer.cancel();
+      }
+    });
+  }
+
   void _onRefresh() async {
     // monitor network fetch
     await bloc.fetchPhoto(controller.text);
@@ -115,7 +160,7 @@ class _HomePageState extends State<SearchTabPhoto> {
   }
 
   bool isBlock(int id) {
-    var blocklist = global.blockList.split(",");
+    var blocklist = global.blockList.split(",");    
     print(blocklist);
     return blocklist.contains(id.toString());
   }
@@ -354,174 +399,212 @@ class _HomePageState extends State<SearchTabPhoto> {
                                                 ),
                                               ),
                                               MaterialButton(
-                                                height: 20.0,
-                                                minWidth: 65.0,
-                                                child: const Icon(
-                                                    LineIcons.ellipsis_h),
-                                                onPressed: () {
-                                                  showModalBottomSheet<dynamic>(
-                                                    backgroundColor:
-                                                        Colors.transparent,
-                                                    isScrollControlled: true,
-                                                    shape:
-                                                        RoundedRectangleBorder(
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                                        15.0)),
-                                                    context: context,
-                                                    builder:
-                                                        (BuildContext context) {
-                                                      return Wrap(
-                                                          children: <Widget>[
-                                                            Container(
-                                                              decoration: new BoxDecoration(
-                                                                  color: Colors
-                                                                      .transparent,
-                                                                  borderRadius: new BorderRadius
-                                                                          .only(
-                                                                      topLeft: const Radius
-                                                                              .circular(
-                                                                          30.0),
-                                                                      topRight:
-                                                                          const Radius.circular(
-                                                                              30.0))),
-                                                              child: Container(
-                                                                child: Column(
-                                                                  children: <
-                                                                      Widget>[
-                                                                    new Column(
-                                                                        mainAxisAlignment:
-                                                                            MainAxisAlignment.center,
-                                                                        children: [
-                                                                          Container(
-                                                                              width: screenSize.width - 45,
-                                                                              decoration: BoxDecoration(
-                                                                                borderRadius: BorderRadius.circular(10),
-                                                                                color: Colors.white,
-                                                                              ),
-                                                                              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                                                                                ButtonTheme(
-                                                                                  minWidth: screenSize.width - 46,
-                                                                                  height: 54.0,
-                                                                                  child: FlatButton(
-                                                                                    // splashColor: Colors.transparent,
-                                                                                    // highlightColor: Colors.transparent,
-                                                                                    child: Text(
-                                                                                      AppLocalizations.instance.text('reportpost'),
-                                                                                      style: TextStyle(color: Colors.red, fontSize: 15.0, fontFamily: 'SFProDisplayMedium'),
-                                                                                    ),
-                                                                                    color: Colors.transparent,
-                                                                                    shape: new RoundedRectangleBorder(borderRadius: BorderRadius.only(topRight: Radius.circular(10.0), topLeft: Radius.circular(10.0))),
-                                                                                    onPressed: () {
-                                                                                      print(snapshot.data.data[index].id);
-                                                                                      bloc.reportpost(snapshot.data.data[index].id);
-                                                                                      Navigator.pop(context);
-                                                                                      savedShow();
-                                                                                    },
-                                                                                  ),
-                                                                                ),
-                                                                                const Divider(
-                                                                                  color: Color.fromRGBO(224, 224, 224, 1),
-                                                                                  height: 1,
-                                                                                  thickness: 0,
-                                                                                  indent: 20,
-                                                                                  endIndent: 20,
-                                                                                ),
-                                                                                ButtonTheme(
-                                                                                  minWidth: screenSize.width - 46,
-                                                                                  height: 54.0,
-                                                                                  child: FlatButton(
-                                                                                    //splashColor: Colors.transparent,
-                                                                                    // highlightColor: Colors.transparent,
-                                                                                    child: Text(
-                                                                                      AppLocalizations.instance.text('visitprofile'),
-                                                                                      style: TextStyle(color: Colors.black, fontSize: 15.0, fontFamily: 'SFProDisplayMedium'),
-                                                                                    ),
-                                                                                    color: Colors.transparent,
-                                                                                    shape: new RoundedRectangleBorder(borderRadius: new BorderRadius.circular(0.0)),
-                                                                                    onPressed: () {
-                                                                                      Navigator.pop(context);
-                                                                                      Navigator.push(
-                                                                                        context,
-                                                                                        MaterialPageRoute(
-                                                                                          builder: (context) => StorytellerProfile(snapshot.data.data[index].user.data.id, false, refresh),
-                                                                                        ),
-                                                                                      );
-                                                                                    },
-                                                                                  ),
-                                                                                ),
-                                                                                const Divider(
-                                                                                  color: Color.fromRGBO(224, 224, 224, 1),
-                                                                                  height: 1,
-                                                                                  thickness: 0,
-                                                                                  indent: 20,
-                                                                                  endIndent: 20,
-                                                                                ),
-                                                                                ButtonTheme(
-                                                                                  minWidth: screenSize.width - 46,
-                                                                                  height: 54.0,
-                                                                                  child: FlatButton(
-                                                                                    //splashColor: Colors.transparent,
-                                                                                    // highlightColor: Colors.transparent,
-                                                                                    child: Text(
-                                                                                      AppLocalizations.instance.text('share'),
-                                                                                      style: TextStyle(color: Colors.black, fontSize: 15.0, fontFamily: 'SFProDisplayMedium'),
-                                                                                    ),
-                                                                                    color: Colors.transparent,
-                                                                                    shape: new RoundedRectangleBorder(borderRadius: BorderRadius.only(bottomRight: Radius.circular(10.0), bottomLeft: Radius.circular(10.0))),
-                                                                                    onPressed: () {
-                                                                                      Navigator.pop(context);
-                                                                                    },
-                                                                                  ),
-                                                                                ),
-                                                                              ]))
-                                                                        ]),
-                                                                    Container(
-                                                                        height:
-                                                                            10),
-                                                                    ButtonTheme(
-                                                                      minWidth:
-                                                                          screenSize.width -
-                                                                              45,
-                                                                      height:
-                                                                          54.0,
-                                                                      child: FlatButton(
-                                                                          child: Text(
-                                                                            AppLocalizations.instance.text('cancel'),
-                                                                            style: TextStyle(
-                                                                                color: Colors.black,
-                                                                                fontSize: 15.0,
-                                                                                fontFamily: 'SFProDisplayMedium'),
-                                                                          ),
-                                                                          color: Colors.white,
-                                                                          shape: new RoundedRectangleBorder(borderRadius: new BorderRadius.circular(10.0)),
-                                                                          onPressed: () {
-                                                                            Navigator.pop(context);
-                                                                          }),
-                                                                    ),
-                                                                    Container(
-                                                                        height:
-                                                                            40),
-                                                                  ],
-                                                                ),
-                                                              ),
+                                    height: 20.0,
+                                    minWidth: 65.0,
+                                    child: const Icon(LineIcons.ellipsis_h),
+                                    onPressed: () {
+                                      showModalBottomSheet<dynamic>(
+                                        backgroundColor: Colors.transparent,
+                                        isScrollControlled: true,
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(15.0)),
+                                        context: context,
+                                        builder: (BuildContext context) {
+                                          
+                                          return Wrap(children: <Widget>[
+                                            Container(
+                                              
+                                              decoration: new BoxDecoration(
+                                                  color: Colors.transparent,
+                                                  borderRadius:
+                                                      new BorderRadius.only(
+                                                          topLeft: const Radius
+                                                              .circular(30.0),
+                                                          topRight: const Radius
+                                                              .circular(30.0))),
+                                              child: Container(
+                                                
+                                                child: Column(
+                                                  children: <Widget>[
+                                                    new Column(
+                                                      mainAxisAlignment:
+                                                       MainAxisAlignment.center,
+                                                        children: [
+                                                          Container(
+                                                            width: screenSize.width - 45,
+                                                            decoration: BoxDecoration(
+                                                               borderRadius: BorderRadius.circular(10),
+                                                            color: Colors.white,),
+                                                            child:
+                                                            Column(
+                                                      mainAxisAlignment:
+                                                       MainAxisAlignment.center,
+                                                        children: [
+
+
+
+
+
+
+
+                                                         ButtonTheme(
+                                                      minWidth:
+                                                      screenSize.width -
+                                                      45.8,
+                                                      height:
+                                                      56.0,
+                                                       child: FlatButton(
+                                                        // splashColor: Colors.transparent,
+                                                        // highlightColor: Colors.transparent,
+                                                       child: Text(
+                                                       AppLocalizations.instance.text('reportpost'),
+                                                       style: TextStyle(
+                                                       color: Colors.red,
+                                                      fontSize: 16.3,
+                                                       fontFamily: 'SFProDisplayMedium'),
+                                                       ),
+                                                        color: Colors.transparent,
+                                                        shape: new RoundedRectangleBorder(
+                                                          borderRadius: 
+                                                          BorderRadius.only(
+                                                            topRight: Radius.circular(10.0),
+                                                            topLeft: Radius.circular(10.0))),
+                                                        onPressed: () {
+                                                         print(snapshot.data.data[index].id);
+                                                         bloc.reportpost(snapshot.data.data[index].id);
+                                                         Navigator.pop(context);
+                                                         savedShow();
+                                                         },),
+                                                        ),
+                                                        const Divider(
+                                                          color: Color.fromRGBO(224, 224, 224, 1),
+                                                          height: 1,
+                                                          thickness: 0,
+                                                          indent: 0,
+                                                          endIndent: 0,
+                                                          ),
+                                                          ButtonTheme(
+                                                      minWidth:
+                                                      screenSize.width -
+                                                      45.8,
+                                                      height:
+                                                      56.0,
+                                                       child: FlatButton(
+                                                         //splashColor: Colors.transparent,
+                                                        // highlightColor: Colors.transparent,
+                                                       child: Text(
+                                                       AppLocalizations.instance.text('visitprofile'),
+                                                       style: TextStyle(
+                                                       color: Colors.black,
+                                                       fontSize: 16.3,
+                                                       fontFamily: 'SFProDisplayMedium'),
+                                                       ),
+                                                        color: Colors.transparent,
+                                                        shape: new RoundedRectangleBorder(borderRadius: new BorderRadius.circular(0.0)),
+                                                        onPressed: () {
+                                                          Navigator.pop(
+                                                          context);
+                                                          Navigator.push(
+                                                          context,
+                                                          MaterialPageRoute(
+                                                          builder: (context) =>
+                                                          StorytellerProfile(
+                                                          snapshot.data.data[index].user
+                                                          .data.id,
+                                                          false,
+                                                          refresh),
+                                                           ),
+                                                           );
+                                                           },),
+                                                        ),
+                                                        const Divider(
+                                                          color: Color.fromRGBO(224, 224, 224, 1),
+                                                          height: 1,
+                                                          thickness: 0,
+                                                          indent: 0,
+                                                          endIndent: 0,
+                                                          ),
+                                                        
+                                                    ButtonTheme(
+                                                      minWidth:
+                                                      screenSize.width -
+                                                      45.8,
+                                                      height:
+                                                      56.0,
+                                                       child: FlatButton(
+                                                         //splashColor: Colors.transparent,
+                                                        // highlightColor: Colors.transparent,
+                                                       child: Text(
+                                                        AppLocalizations.instance.text('share'),
+                                                       style: TextStyle(
+                                                       color: Colors.black,
+                                                       fontSize: 16.3,
+                                                       fontFamily: 'SFProDisplayMedium'),
+                                                       ),
+                                                        color: Colors.transparent,
+                                                        shape: new RoundedRectangleBorder(
+                                                          borderRadius: 
+                                                          BorderRadius.only(
+                                                            bottomRight: Radius.circular(10.0),
+                                                            bottomLeft: Radius.circular(10.0))),
+                                                        onPressed: () {
+                                                         Navigator.pop(context);
+                                                         },),
+                                                        ),
+                                                     
+
+                                                        ]
                                                             )
-                                                          ]);
-                                                    },
-                                                  );
-                                                },
+                                                            )
+
+                                                       ]),
+
+                                                     Container(height: 10),
+                                                     ButtonTheme(
+                                                      minWidth:
+                                                      screenSize.width -
+                                                      45.8,
+                                                      height:
+                                                      56.0,
+                                                       child: FlatButton(
+                                                       child: Text(
+                                                       AppLocalizations.instance.text('cancel'),
+                                                       style: TextStyle(
+                                                       color: Colors.black,
+                                                       fontSize: 16.3,
+                                                       fontFamily: 'SFProDisplayMedium'),
+                                                       ),
+                                                        color: Colors.white,
+                                                        shape: new RoundedRectangleBorder(borderRadius: new BorderRadius.circular(10.0)),
+                                                        onPressed: () {
+                                                         Navigator.pop(context);
+                                                         }),
+                                                        ),
+                                                        Container(height: 40),
+
+
+
+                                                  ],
+                                                ),
                                               ),
+                                            )
+                                          ]);
+                                        },
+                                      );
+                                    },
+                                  ),
+
                                             ])
                                       : Container(),
                             ),
                             GestureDetector(
                               onDoubleTap: () {
                                 (snapshot.data.data[index].like == "true")
-                                    ? bloc.unlikepost(
-                                        snapshot.data.data[index].id)
-                                    : bloc
-                                        .likepost(snapshot.data.data[index].id);
+                                    ? bloc.unlikepost(snapshot.data.data[index].id)
+                                : bloc.likepost(snapshot.data.data[index].id);
+                                Vibrate.feedback(FeedbackType.medium);
+                                likeShow();
                               },
                               child: new Container(
                                 child: Stack(children: <Widget>[
@@ -536,20 +619,25 @@ class _HomePageState extends State<SearchTabPhoto> {
                                       child: checkFileType(snapshot
                                                   .data.data[index].image) ==
                                               "image"
-                                          ? CachedNetworkImage(
-                                              width: screenSize.width,
-                                              placeholder: (c, d) {
-                                                return Center(
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                    strokeWidth: 2.0,
+                                          ? PinchZoomImage(
+                                                  image: CachedNetworkImage(
+                                                    width: screenSize.width,
+                                                    placeholder: (c, d) {
+                                                      return Center(
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                          strokeWidth: 2.0,
+                                                        ),
+                                                      );
+                                                    },
+                                                    fit: BoxFit.cover,
+                                                    imageUrl: snapshot
+                                                        .data.data[index].image,
                                                   ),
-                                                );
-                                              },
-                                              fit: BoxFit.cover,
-                                              imageUrl: snapshot
-                                                  .data.data[index].image,
-                                            )
+                                                  zoomedBackgroundColor:
+                                                      Color.fromRGBO(
+                                                          240, 240, 240, 0.50),
+                                                )
                                           : Container(),
                                     ),
                                   ),
@@ -559,262 +647,214 @@ class _HomePageState extends State<SearchTabPhoto> {
                             SizedBox(
                               height: 0.0,
                             ),
-                            ClipRRect(
-                              borderRadius: new BorderRadius.circular(0.0),
-                              child: checkFileType(
-                                          snapshot.data.data[index].image) ==
-                                      "image"
-                                  ? Container(
-                                      padding:
-                                          const EdgeInsets.only(bottom: 0.0),
-                                      child: new Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            SizedBox(
-                                              width: screenSize.width,
-                                              child: Container(
-                                                alignment: Alignment.centerLeft,
-                                                padding: const EdgeInsets.only(
-                                                  left: 16.0,
-                                                  top: 13,
-                                                  bottom: 13,
-                                                  right: 16.0,
-                                                ),
-                                                child: new Column(
-                                                  children: <Widget>[
-                                                    RichText(
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                      softWrap: true,
-                                                      maxLines: 3,
-                                                      text: TextSpan(
-                                                        text: snapshot
-                                                                .data
-                                                                .data[index]
-                                                                .user
-                                                                .data
-                                                                .name +
-                                                            ' ',
-                                                        style: TextStyle(
-                                                          fontFamily:
-                                                              "SFProDisplayBold",
-                                                          fontSize: 13.7,
-                                                          color: Color.fromRGBO(
-                                                              28, 28, 28, 1),
-                                                        ),
-                                                        children: <TextSpan>[
-                                                          TextSpan(
-                                                            text: snapshot
-                                                                .data
-                                                                .data[index]
-                                                                .description,
-                                                            style: TextStyle(
-                                                              fontFamily:
-                                                                  "SFProDisplayMedium",
-                                                              fontSize: 13.7,
-                                                              color: Color
-                                                                  .fromRGBO(
-                                                                      28,
-                                                                      28,
-                                                                      28,
-                                                                      1),
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ]),
-                                    )
-                                  : Container(),
-                            ),
-                            ClipRRect(
-                              borderRadius: new BorderRadius.circular(0.0),
-                              child: checkFileType(
-                                          snapshot.data.data[index].image) ==
-                                      "image"
-                                  ? Container(
-                                      child: Column(children: [
-                                      Container(
-                                        padding:
-                                            const EdgeInsets.only(bottom: 10.0),
-                                        child: const Divider(
-                                          color:
-                                              Color.fromRGBO(224, 224, 224, 1),
-                                          height: 1,
-                                          thickness: 0,
-                                          indent: 16,
-                                          endIndent: 16,
-                                        ),
-                                      ),
-                                      Container(
-                                        padding: const EdgeInsets.only(
-                                          top: 0.0,
-                                          bottom: 13,
-                                          left: 20,
-                                          right: 26,
-                                        ),
-                                        child: new Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Container(
-                                                child: Row(children: [
-                                              Row(
-                                                children: [
-                                                  GestureDetector(
-                                                    onTap: () {
-                                                      (snapshot.data.data[index]
-                                                                  .like ==
-                                                              "true")
-                                                          ? bloc.unlikepost(
-                                                              snapshot
-                                                                  .data
-                                                                  .data[index]
-                                                                  .id)
-                                                          : bloc.likepost(
-                                                              snapshot
-                                                                  .data
-                                                                  .data[index]
-                                                                  .id);
-                                                    },
-                                                    child: (snapshot
-                                                                .data
-                                                                .data[index]
-                                                                .like ==
-                                                            "true")
-                                                        ? Icon(Icons.favorite,
-                                                            color: Colors.red,
-                                                            size: 23)
-                                                        : Icon(
-                                                            Icons
-                                                                .favorite_border,
-                                                            size: 23,
-                                                            color:
-                                                                Colors.black45,
-                                                          ),
-                                                  ),
-                                                  SizedBox(
-                                                    width: 5.0,
-                                                  ),
-                                                  Text(
-                                                    snapshot.data.data[index]
-                                                            .likecount
-                                                            .toString() +
-                                                        ' ' +
-                                                        AppLocalizations
-                                                            .instance
-                                                            .text('like'),
-                                                    textAlign: TextAlign.start,
-                                                    style: TextStyle(
-                                                      fontFamily:
-                                                          "SFProDisplayMedium",
-                                                      fontSize: 14.5,
-                                                      color: Colors.black45,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ])),
-                                            GestureDetector(
-                                              onTap: () {
-                                                Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder: (context) =>
-                                                        Comments(snapshot.data
-                                                            .data[index].id),
-                                                  ),
-                                                );
-                                              },
-                                              child: Container(
-                                                child: Row(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .center,
-                                                    children: [
-                                                      Transform(
-                                                        alignment:
-                                                            Alignment.center,
-                                                        transform:
-                                                            Matrix4.rotationY(
-                                                                math.pi),
-                                                        child: Icon(
-                                                            Feather
-                                                                .message_circle,
-                                                            color:
-                                                                Colors.black45,
-                                                            size: 21.7),
-                                                      ),
-                                                      SizedBox(
-                                                        width: 5.0,
-                                                      ),
-                                                      Center(
-                                                        child: Text(
-                                                          AppLocalizations
-                                                              .instance
-                                                              .text('comments'),
-                                                          textAlign:
-                                                              TextAlign.start,
-                                                          style: TextStyle(
-                                                            fontFamily:
-                                                                "SFProDisplayMedium",
-                                                            fontSize: 14.5,
-                                                            color:
-                                                                Colors.black45,
-                                                          ),
-                                                        ),
-                                                      )
-                                                    ]),
-                                              ),
-                                            ),
-                                            Container(
-                                              child: Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: [
-                                                    Icon(Icons.bookmark_border,
-                                                        color: Colors.black45,
-                                                        size: 22.6),
-                                                    SizedBox(
-                                                      width: 5.0,
-                                                    ),
-                                                    Text(
-                                                      AppLocalizations.instance
-                                                          .text('save'),
-                                                      textAlign:
-                                                          TextAlign.start,
-                                                      style: TextStyle(
-                                                        fontFamily:
-                                                            "SFProDisplayMedium",
-                                                        fontSize: 14.5,
-                                                        color: Colors.black45,
-                                                      ),
-                                                    )
-                                                  ]),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Container(
-                                        padding:
-                                            const EdgeInsets.only(bottom: 10.0),
-                                        child: const Divider(
-                                          color:
-                                              Color.fromRGBO(224, 224, 224, 1),
-                                          height: 1,
-                                          thickness: 0,
-                                          indent: 0,
-                                          endIndent: 0,
-                                        ),
-                                      ),
-                                    ]))
-                                  : Container(),
-                            ),
+                            
+ClipRRect(
+ borderRadius: new BorderRadius.circular(0.0),
+child: checkFileType(snapshot.data.data[index].image) == "image"
+    ? Container (
+      padding: const EdgeInsets.only(bottom:0.0),
+      
+  
+child:
+new Row(
+  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  children: [
+  
+SizedBox(
+      width: screenSize.width,
+      child:
+    Container (
+      alignment: Alignment.centerLeft,
+      padding: const EdgeInsets.only(left:16.0, top: 13, bottom: 13, right: 16.0,),
+      
+      child: new Column (
+        children: <Widget>[
+          RichText(
+  overflow: TextOverflow.ellipsis,
+  softWrap: true,
+  maxLines: 3,
+  text: TextSpan(
+    text: snapshot.data.data[index].user.data.name + ' ',
+    style:
+                TextStyle(fontFamily:"SFProDisplayBold",
+                     fontSize:13.7, color: Color.fromRGBO(28, 28, 28, 1),
+                     ),
+    children: <TextSpan>[
+      TextSpan(
+        text: snapshot.data.data[index].description,
+        style:
+                TextStyle(fontFamily:"SFProDisplayMedium",
+                     fontSize:13.7, color: Color.fromRGBO(28, 28, 28, 1),
+                     ),
+        
+      ),
+    ],
+  ),
+),
+        ],
+      ),
+    ),
+),
+
+  ]
+),
+)
+    : Container (),
+),
+
+
+ClipRRect(
+ borderRadius: new BorderRadius.circular(0.0),
+child: checkFileType(snapshot.data.data[index].image) == "image"
+? Container(child: 
+Column(
+  children: [
+Container (
+ 
+      padding: const EdgeInsets.only(bottom:10.0),
+      child:
+const Divider(
+            color: Color.fromRGBO(207, 207, 207, 1),
+            height: 1,
+            thickness: 0,
+            indent: 16,
+            endIndent: 16,
+          ),
+),
+
+
+Container(
+ 
+  padding: const EdgeInsets.only(top:0.0, bottom: 13, left: 20, right: 26, ),
+  child:
+  new Row(
+  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  children: [
+    Container(
+    child: 
+    Row(
+      children: [
+         Row(
+           children: [
+           GestureDetector(
+             onTap: () {(snapshot.data.data[index].like == "true")
+             
+                ? bloc.unlikepost(snapshot.data.data[index].id)
+                : bloc.likepost(snapshot.data.data[index].id);
+                },
+                child: (snapshot.data.data[index].like == "true")
+                 ? Icon(
+                   Icons
+                   .favorite,
+                   color: Colors.red, size: 23)
+                 : Icon(
+                   Icons
+                   .favorite_border, size: 23, color: Colors.black45,),
+                   
+                 ),
+                   SizedBox(
+                   width: 5.0,
+                   ),
+                 
+                 Text(
+                   snapshot
+                   .data
+                   .data[index]
+                   .likecount
+                   .toString() + ' ' + AppLocalizations.instance.text('like'),
+                   textAlign:
+                   TextAlign.start,
+                   style: TextStyle(
+                   fontFamily:
+                   "SFProDisplayMedium",
+                    fontSize: 14.5,
+                    color: Colors.black45,
+                   ),
+                  ),
+                  ],
+                 ),
+                 ])),
+        GestureDetector(
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => Comments(
+                                                snapshot.data.data[index].id),
+                                          ),
+                                        );
+                                      },
+        child:
+    Container( child: 
+    Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+       children: [
+         Transform(
+                alignment: Alignment.center,
+                transform: Matrix4.rotationY(math.pi),
+                child:
+         Icon(Feather.message_circle, color: Colors.black45, size: 21.7),
+          ),
+         SizedBox(
+                   width: 5.0,
+                   ),
+                   Center(
+        child:
+         Text(AppLocalizations.instance.text('comments'),
+                   textAlign:
+                   TextAlign.start,
+                   style: TextStyle(
+                   fontFamily:
+                   "SFProDisplayMedium",
+                    fontSize: 14.5,
+                    color: Colors.black45,
+                   ),),
+                   )
+    ]
+     ),),
+        ),
+
+     Container( child: Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+       children: [
+         Icon(Icons.bookmark_border, color: Colors.black45, size: 22.6),
+         SizedBox(
+                   width: 5.0,
+                   ),
+         Text(AppLocalizations.instance.text('save'),
+                   textAlign:
+                   TextAlign.start,
+                   style: TextStyle(
+                   fontFamily:
+                   "SFProDisplayMedium",
+                    fontSize: 14.5,
+                    color: Colors.black45,
+                   ),
+         )
+       ]
+    ),),
+  ],
+),
+),
+
+
+Container (
+      padding: const EdgeInsets.only(bottom:10.0),
+      child:
+const Divider(
+            color: Color.fromRGBO(207, 207, 207, 1),
+            height: 1,
+            thickness: 0,
+            indent: 0,
+            endIndent: 0,
+          ),
+),
+  ]
+))
+: Container(),
+),
+
+
                           ],
                         );
                 },

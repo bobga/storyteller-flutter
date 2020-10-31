@@ -1,5 +1,12 @@
+import 'dart:convert';
+import 'dart:io';
 import 'dart:ui';
 import 'package:Storyteller/app_localizations.dart';
+import 'package:Storyteller/src/constant/httpService.dart';
+import 'package:Storyteller/src/constant/utils.dart';
+import 'package:Storyteller/src/ui/blocked%20users.dart';
+import 'package:Storyteller/src/ui/edit_profile.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:Storyteller/src/ui/edit_cover.dart';
 import 'package:Storyteller/src/ui/video.dart';
@@ -9,6 +16,7 @@ import 'package:Storyteller/src/models/user_model.dart';
 import 'package:Storyteller/src/ui/conversation_send.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import 'package:video_player/video_player.dart';
 import 'bottomNavigation.dart';
 import 'settings.dart';
 import 'package:line_icons/line_icons.dart';
@@ -22,6 +30,15 @@ import 'package:flutter_icons/flutter_icons.dart' as ico;
 import 'dart:math' as math;
 import 'package:Storyteller/src/ui/comments.dart';
 import 'package:flutter_icons/flutter_icons.dart';
+import 'package:lottie/lottie.dart';
+import 'package:open_app_settings/open_app_settings.dart';
+import 'package:http/http.dart' as http;
+import 'package:path/path.dart' as path;
+import 'package:async/async.dart';
+import 'package:image_cropper/image_cropper.dart';
+import 'package:pinch_zoom_image_last/pinch_zoom_image_last.dart';
+import 'package:flutter_vibrate/flutter_vibrate.dart';
+import 'package:progress_indicators/progress_indicators.dart';
 
 class StorytellerProfile extends StatefulWidget {
   final int idController;
@@ -38,6 +55,11 @@ class StorytellerProfile extends StatefulWidget {
 }
 
 class MyTimelinePage extends State<StorytellerProfile> {
+  Timer _timer;
+  File _media;
+  bool isVideo = false;
+  VideoPlayerController _controller;
+  Duration _duration;
   RefreshController _refreshController =
       RefreshController(initialRefresh: false);
   int counterbus = 0;
@@ -71,6 +93,17 @@ class MyTimelinePage extends State<StorytellerProfile> {
   }
 
   bool auto = false;
+
+  bool isBlock(int id) {
+    var blocklist = global.blockList.split(",");
+    return blocklist.contains(id.toString());
+  }
+
+  bool isBlocked(String list) {
+    var id = global.userId;
+    var blocklist = list.split(",");
+    return blocklist.contains(id.toString());
+  }
 
   @override
   void initState() {
@@ -157,6 +190,46 @@ class MyTimelinePage extends State<StorytellerProfile> {
     );
   }
 
+  void likeShow() {
+    showDialog(
+        barrierColor: Colors.black.withOpacity(0.30),
+        barrierDismissible: false,
+        context: context,
+        builder: (BuildContext builderContext) {
+          _timer = Timer(Duration(milliseconds: 400), () {
+            Navigator.of(context).pop();
+          });
+
+          return Container(
+              height: 190,
+              width: 190,
+              color: Colors.transparent,
+              child: AlertDialog(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(900.0),
+                ),
+                title: Container(
+                  height: 190,
+                  width: 190,
+                  // padding: EdgeInsets.only(top: 40.0, bottom: 40),
+                  child: HeartbeatProgressIndicator(
+                    child: Icon(
+                      Icons.favorite,
+                      size: 80,
+                      color: Color.fromRGBO(255, 255, 255, 0.85),
+                    ),
+                  ),
+                ),
+              ));
+        }).then((val) {
+      if (_timer.isActive) {
+        _timer.cancel();
+      }
+    });
+  }
+
   void blockuser(int block_id) {
     showDialog(
       context: context,
@@ -209,6 +282,52 @@ class MyTimelinePage extends State<StorytellerProfile> {
         );
       },
     );
+  }
+
+  Future<String> fetchToken() async {
+    var client = await HttpService().getClient();
+    return client.credentials.accessToken.toString();
+  }
+
+  void sendUploadFile() async {
+    final String url =
+        "${NetworkUtils.urlBase}${NetworkUtils.serverApi}stories";
+
+    var request = new http.MultipartRequest("POST", Uri.parse(url));
+    print(url);
+    Map<String, String> headers = {
+      'Content-type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': 'Bearer ' + await fetchToken(),
+    };
+
+    var stream_video =
+        new http.ByteStream(DelegatingStream.typed(_media.openRead()));
+    var length_video = await _media.length();
+
+    print(path.basename(_media.path));
+    print(length_video);
+
+    var multipartFile = new http.MultipartFile(
+        'media', stream_video, length_video,
+        filename: path.basename(_media.path));
+
+    request.files.add(multipartFile);
+    if (isVideo == true) {
+      request.fields['duration'] = _duration.toString();
+      request.fields['type'] = 'video';
+    } else {
+      request.fields['duration'] = '5';
+      request.fields['type'] = 'image';
+    }
+
+    request.headers.addAll(headers);
+    var response = await request.send();
+    print(response.statusCode);
+
+    response.stream.transform(utf8.decoder).listen((value) {
+      print(value);
+    });
   }
 
   swipeDownRefresh() {}
@@ -321,618 +440,606 @@ class MyTimelinePage extends State<StorytellerProfile> {
                       return SliverList(
                         delegate: SliverChildBuilderDelegate(
                           (BuildContext context, int index) {
-                            return Column(
-                              children: <Widget>[
-                                new Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Padding(
-                                        padding: EdgeInsets.only(
-                                            left: 15.0,
-                                            right: 15.0,
-                                            bottom: 10.0,
-                                            top: 10.0),
-                                        child: Row(
+                            return (isBlock(snapshot
+                                            .data.data[index].user.data.id) ==
+                                        true) ||
+                                    (isBlocked(snapshot.data.data[index].user
+                                            .data.block) ==
+                                        true)
+                                ? Container()
+                                : Column(
+                                    children: <Widget>[
+                                      new Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
                                           children: [
-                                            ClipRRect(
-                                              borderRadius:
-                                                  new BorderRadius.circular(
-                                                      30.0),
-                                              child: CachedNetworkImage(
-                                                height: kToolbarHeight / 1.1,
-                                                width: kToolbarHeight / 1.1,
-                                                fit: BoxFit.cover,
-                                                placeholder: (c, d) {
-                                                  return Center(
-                                                    child:
-                                                        CircularProgressIndicator(
-                                                      strokeWidth: 2.0,
-                                                    ),
-                                                  );
-                                                },
-                                                imageUrl: snapshot
-                                                    .data
-                                                    .data[index]
-                                                    .user
-                                                    .data
-                                                    .avatar,
-                                              ),
-                                            ),
-                                            Row(
-                                              children: [
-                                                SizedBox(
-                                                  width: 10.0,
-                                                ),
-                                                Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: <Widget>[
-                                                    Row(
-                                                      children: [
-                                                        new Text(
-                                                          snapshot
-                                                              .data
-                                                              .data[index]
-                                                              .user
-                                                              .data
-                                                              .name,
-                                                          style: TextStyle(
-                                                            fontFamily:
-                                                                "SFProDisplayBold",
-                                                            fontSize: 17,
+                                            Padding(
+                                              padding: EdgeInsets.only(
+                                                  left: 15.0,
+                                                  right: 15.0,
+                                                  bottom: 10.0,
+                                                  top: 10.0),
+                                              child: Row(
+                                                children: [
+                                                  ClipRRect(
+                                                    borderRadius:
+                                                        new BorderRadius
+                                                            .circular(30.0),
+                                                    child: CachedNetworkImage(
+                                                      height:
+                                                          kToolbarHeight / 1.1,
+                                                      width:
+                                                          kToolbarHeight / 1.1,
+                                                      fit: BoxFit.cover,
+                                                      placeholder: (c, d) {
+                                                        return Center(
+                                                          child:
+                                                              CircularProgressIndicator(
+                                                            strokeWidth: 2.0,
                                                           ),
-                                                        ),
-                                                        SizedBox(
-                                                          width: 5,
-                                                        ),
-                                                        snapshot
+                                                        );
+                                                      },
+                                                      imageUrl: snapshot
+                                                          .data
+                                                          .data[index]
+                                                          .user
+                                                          .data
+                                                          .avatar,
+                                                    ),
+                                                  ),
+                                                  Row(
+                                                    children: [
+                                                      SizedBox(
+                                                        width: 10.0,
+                                                      ),
+                                                      Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .center,
+                                                        children: <Widget>[
+                                                          Row(
+                                                            children: [
+                                                              new Text(
+                                                                snapshot
                                                                     .data
                                                                     .data[index]
                                                                     .user
                                                                     .data
-                                                                    .badge ==
-                                                                'true'
-                                                            ? Container(
-                                                                padding: EdgeInsets
-                                                                    .only(
-                                                                        top: 1),
-                                                                decoration: BoxDecoration(
-                                                                    shape: BoxShape
-                                                                        .circle,
-                                                                    color: Colors
-                                                                        .transparent),
-                                                                child: Padding(
-                                                                  padding:
-                                                                      const EdgeInsets
-                                                                          .all(0),
-                                                                  child: SvgPicture
-                                                                      .network(
-                                                                          "https://teling.app/wp-content/uploads/2020/09/check.svg",
-                                                                          width:
-                                                                              14,
-                                                                          height:
-                                                                              14),
+                                                                    .name,
+                                                                style:
+                                                                    TextStyle(
+                                                                  fontFamily:
+                                                                      "SFProDisplayBold",
+                                                                  fontSize: 17,
                                                                 ),
-                                                              )
-                                                            : Container(),
-                                                      ],
-                                                    ),
-                                                    SizedBox(
-                                                      height: 2.0,
-                                                    ),
-                                                    new Text(
-                                                      timeago.format(
-                                                          DateTime.parse(snapshot
+                                                              ),
+                                                              SizedBox(
+                                                                width: 5,
+                                                              ),
+                                                              snapshot
+                                                                          .data
+                                                                          .data[
+                                                                              index]
+                                                                          .user
+                                                                          .data
+                                                                          .badge ==
+                                                                      'true'
+                                                                  ? Container(
+                                                                      padding: EdgeInsets
+                                                                          .only(
+                                                                              top: 1),
+                                                                      decoration: BoxDecoration(
+                                                                          shape: BoxShape
+                                                                              .circle,
+                                                                          color:
+                                                                              Colors.transparent),
+                                                                      child:
+                                                                          Padding(
+                                                                        padding:
+                                                                            const EdgeInsets.all(0),
+                                                                        child: SvgPicture.network(
+                                                                            "https://teling.app/wp-content/uploads/2020/09/check.svg",
+                                                                            width:
+                                                                                14,
+                                                                            height:
+                                                                                14),
+                                                                      ),
+                                                                    )
+                                                                  : Container(),
+                                                            ],
+                                                          ),
+                                                          SizedBox(
+                                                            height: 2.0,
+                                                          ),
+                                                          new Text(
+                                                            timeago.format(
+                                                                DateTime.parse(snapshot
+                                                                        .data
+                                                                        .data[
+                                                                            index]
+                                                                        .createdat)
+                                                                    .toLocal(),
+                                                                locale: AppLocalizations
+                                                                    .instance
+                                                                    .mlangCode),
+                                                            style: TextStyle(
+                                                              fontFamily:
+                                                                  "SFProDisplayRegular",
+                                                              fontSize: 14,
+                                                              color: Color
+                                                                  .fromRGBO(
+                                                                      152,
+                                                                      152,
+                                                                      152,
+                                                                      1),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            Row(children: [
+                                              SizedBox(
+                                                width: 10.0,
+                                              ),
+                                              Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: <Widget>[
+                                                  (widget.idController == 0 ||
+                                                          widget.idController ==
+                                                              global.userId)
+                                                      ? MaterialButton(
+                                                          height: 20.0,
+                                                          minWidth: 65.0,
+                                                          child: const Icon(
+                                                              LineIcons
+                                                                  .ellipsis_h),
+                                                          onPressed: () {
+                                                            showModalBottomSheet<
+                                                                dynamic>(
+                                                              backgroundColor:
+                                                                  Colors
+                                                                      .transparent,
+                                                              isScrollControlled:
+                                                                  true,
+                                                              shape: RoundedRectangleBorder(
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              15.0)),
+                                                              context: context,
+                                                              builder:
+                                                                  (BuildContext
+                                                                      context) {
+                                                                return Wrap(
+                                                                    children: <
+                                                                        Widget>[
+                                                                      Container(
+                                                                        decoration: new BoxDecoration(
+                                                                            color:
+                                                                                Colors.transparent,
+                                                                            borderRadius: new BorderRadius.only(topLeft: const Radius.circular(30.0), topRight: const Radius.circular(30.0))),
+                                                                        child:
+                                                                            Container(
+                                                                          child:
+                                                                              Column(
+                                                                            children: <Widget>[
+                                                                              new Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                                                                                Container(
+                                                                                    width: screenSize.width - 45,
+                                                                                    decoration: BoxDecoration(
+                                                                                      borderRadius: BorderRadius.circular(10),
+                                                                                      color: Colors.white,
+                                                                                    ),
+                                                                                    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                                                                                      ButtonTheme(
+                                                                                        minWidth: screenSize.width - 45.8,
+                                                                                        height: 56.0,
+                                                                                        child: FlatButton(
+                                                                                          //splashColor: Colors.transparent,
+                                                                                          //highlightColor: Colors.transparent,
+                                                                                          child: Text(
+                                                                                            AppLocalizations.instance.text('deletepost'),
+                                                                                            style: TextStyle(color: Colors.red, fontSize: 16.3, fontFamily: 'SFProDisplayMedium'),
+                                                                                          ),
+                                                                                          color: Colors.transparent,
+                                                                                          shape: new RoundedRectangleBorder(borderRadius: BorderRadius.only(topRight: Radius.circular(10.0), topLeft: Radius.circular(10.0))),
+                                                                                          onPressed: () {
+                                                                                            bloc.destroypost(snapshot.data.data[index].id);
+                                                                                            Navigator.pop(context);
+                                                                                          },
+                                                                                        ),
+                                                                                      ),
+                                                                                      const Divider(
+                                                                                        color: Color.fromRGBO(224, 224, 224, 1),
+                                                                                        height: 1,
+                                                                                        thickness: 0,
+                                                                                        indent: 0,
+                                                                                        endIndent: 0,
+                                                                                      ),
+                                                                                      ButtonTheme(
+                                                                                        minWidth: screenSize.width - 45.8,
+                                                                                        height: 56.0,
+                                                                                        child: FlatButton(
+                                                                                          // splashColor: Colors.transparent,
+                                                                                          //  highlightColor: Colors.transparent,
+                                                                                          child: Text(
+                                                                                            AppLocalizations.instance.text('share'),
+                                                                                            style: TextStyle(color: Colors.black, fontSize: 16.3, fontFamily: 'SFProDisplayMedium'),
+                                                                                          ),
+                                                                                          color: Colors.transparent,
+                                                                                          shape: new RoundedRectangleBorder(borderRadius: BorderRadius.only(bottomRight: Radius.circular(10.0), bottomLeft: Radius.circular(10.0))),
+                                                                                          onPressed: () {
+                                                                                            Navigator.pop(context);
+                                                                                          },
+                                                                                        ),
+                                                                                      ),
+                                                                                    ]))
+                                                                              ]),
+                                                                              Container(height: 10),
+                                                                              ButtonTheme(
+                                                                                minWidth: screenSize.width - 45.8,
+                                                                                height: 56.0,
+                                                                                child: FlatButton(
+                                                                                    // splashColor: Colors.transparent,
+                                                                                    // highlightColor: Colors.transparent,
+                                                                                    child: Text(
+                                                                                      AppLocalizations.instance.text('cancel'),
+                                                                                      style: TextStyle(color: Colors.black, fontSize: 16.3, fontFamily: 'SFProDisplayMedium'),
+                                                                                    ),
+                                                                                    color: Colors.white,
+                                                                                    shape: new RoundedRectangleBorder(borderRadius: new BorderRadius.circular(10.0)),
+                                                                                    onPressed: () {
+                                                                                      Navigator.pop(context);
+                                                                                    }),
+                                                                              ),
+                                                                              Container(height: 40),
+                                                                            ],
+                                                                          ),
+                                                                        ),
+                                                                      )
+                                                                    ]);
+                                                              },
+                                                            );
+                                                          },
+                                                        )
+                                                      : MaterialButton(
+                                                          height: 20.0,
+                                                          minWidth: 65.0,
+                                                          child: const Icon(
+                                                              LineIcons
+                                                                  .ellipsis_h),
+                                                          onPressed: () {
+                                                            showModalBottomSheet<
+                                                                dynamic>(
+                                                              backgroundColor:
+                                                                  Colors
+                                                                      .transparent,
+                                                              isScrollControlled:
+                                                                  true,
+                                                              shape: RoundedRectangleBorder(
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              15.0)),
+                                                              context: context,
+                                                              builder:
+                                                                  (BuildContext
+                                                                      context) {
+                                                                return Wrap(
+                                                                    children: <
+                                                                        Widget>[
+                                                                      Container(
+                                                                        decoration: new BoxDecoration(
+                                                                            color:
+                                                                                Colors.transparent,
+                                                                            borderRadius: new BorderRadius.only(topLeft: const Radius.circular(30.0), topRight: const Radius.circular(30.0))),
+                                                                        child:
+                                                                            Container(
+                                                                          child:
+                                                                              Column(
+                                                                            children: <Widget>[
+                                                                              new Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                                                                                Container(
+                                                                                    width: screenSize.width - 45,
+                                                                                    decoration: BoxDecoration(
+                                                                                      borderRadius: BorderRadius.circular(10),
+                                                                                      color: Colors.white,
+                                                                                    ),
+                                                                                    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                                                                                      ButtonTheme(
+                                                                                        minWidth: screenSize.width - 45.8,
+                                                                                        height: 56.0,
+                                                                                        child: FlatButton(
+                                                                                          //splashColor: Colors.transparent,
+                                                                                          // highlightColor: Colors.transparent,
+                                                                                          child: Text(
+                                                                                            AppLocalizations.instance.text('reportpost'),
+                                                                                            style: TextStyle(color: Colors.red, fontSize: 16.3, fontFamily: 'SFProDisplayMedium'),
+                                                                                          ),
+                                                                                          color: Colors.transparent,
+                                                                                          shape: new RoundedRectangleBorder(borderRadius: BorderRadius.only(topRight: Radius.circular(10.0), topLeft: Radius.circular(10.0))),
+                                                                                          onPressed: () {
+                                                                                            print(snapshot.data.data[index].id);
+                                                                                            bloc.reportpost(snapshot.data.data[index].id);
+                                                                                            Navigator.pop(context);
+                                                                                            savedShow();
+                                                                                          },
+                                                                                        ),
+                                                                                      ),
+                                                                                      const Divider(
+                                                                                        color: Color.fromRGBO(224, 224, 224, 1),
+                                                                                        height: 1,
+                                                                                        thickness: 0,
+                                                                                        indent: 0,
+                                                                                        endIndent: 0,
+                                                                                      ),
+                                                                                      ButtonTheme(
+                                                                                        minWidth: screenSize.width - 45.8,
+                                                                                        height: 56.0,
+                                                                                        child: FlatButton(
+                                                                                          //splashColor: Colors.transparent,
+                                                                                          // highlightColor: Colors.transparent,
+                                                                                          child: Text(
+                                                                                            AppLocalizations.instance.text('share'),
+                                                                                            style: TextStyle(color: Colors.black, fontSize: 16.3, fontFamily: 'SFProDisplayMedium'),
+                                                                                          ),
+                                                                                          color: Colors.transparent,
+                                                                                          shape: new RoundedRectangleBorder(borderRadius: BorderRadius.only(bottomRight: Radius.circular(10.0), bottomLeft: Radius.circular(10.0))),
+                                                                                          onPressed: () {
+                                                                                            Navigator.pop(context);
+                                                                                          },
+                                                                                        ),
+                                                                                      ),
+                                                                                    ]))
+                                                                              ]),
+                                                                              Container(height: 10),
+                                                                              ButtonTheme(
+                                                                                minWidth: screenSize.width - 45.8,
+                                                                                height: 56.0,
+                                                                                child: FlatButton(
+                                                                                    // splashColor: Colors.transparent,
+                                                                                    // highlightColor: Colors.transparent,
+                                                                                    child: Text(
+                                                                                      AppLocalizations.instance.text('cancel'),
+                                                                                      style: TextStyle(color: Colors.black, fontSize: 16.3, fontFamily: 'SFProDisplayMedium'),
+                                                                                    ),
+                                                                                    color: Colors.white,
+                                                                                    shape: new RoundedRectangleBorder(borderRadius: new BorderRadius.circular(10.0)),
+                                                                                    onPressed: () {
+                                                                                      Navigator.pop(context);
+                                                                                    }),
+                                                                              ),
+                                                                              Container(height: 40),
+                                                                            ],
+                                                                          ),
+                                                                        ),
+                                                                      )
+                                                                    ]);
+                                                              },
+                                                            );
+                                                          },
+                                                        ),
+                                                ],
+                                              ),
+                                            ]),
+                                          ]),
+                                      GestureDetector(
+                                        onDoubleTap: () {
+                                          (snapshot.data.data[index].like ==
+                                                  "true")
+                                              ? bloc.unlikepost(
+                                                  snapshot.data.data[index].id)
+                                              : bloc.likepost(
+                                                  snapshot.data.data[index].id);
+                                          Vibrate.feedback(FeedbackType.medium);
+                                          likeShow();
+                                        },
+                                        child: new Container(
+                                          child: Stack(children: <Widget>[
+                                            new Container(
+                                              padding: EdgeInsets.only(
+                                                left: 0,
+                                                right: 0,
+                                              ),
+                                              child: ClipRRect(
+                                                borderRadius:
+                                                    new BorderRadius.circular(
+                                                        0.0),
+                                                child: checkFileType(snapshot
+                                                            .data
+                                                            .data[index]
+                                                            .image) ==
+                                                        "image"
+                                                    ? PinchZoomImage(
+                                                        image:
+                                                            CachedNetworkImage(
+                                                          width:
+                                                              screenSize.width,
+                                                          placeholder: (c, d) {
+                                                            return Center(
+                                                              child:
+                                                                  CircularProgressIndicator(
+                                                                strokeWidth:
+                                                                    2.0,
+                                                              ),
+                                                            );
+                                                          },
+                                                          fit: BoxFit.cover,
+                                                          imageUrl: snapshot
+                                                              .data
+                                                              .data[index]
+                                                              .image,
+                                                        ),
+                                                        zoomedBackgroundColor:
+                                                            Color.fromRGBO(240,
+                                                                240, 240, 0.50),
+                                                      )
+                                                    : VideoClip(
+                                                        url: snapshot.data
+                                                            .data[index].image,
+                                                      ),
+                                              ),
+                                            ),
+                                          ]),
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        height: 0,
+                                      ),
+                                      Container(
+                                        width: screenSize.width,
+                                        child: new Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              SizedBox(
+                                                width: screenSize.width,
+                                                child: Container(
+                                                  alignment:
+                                                      Alignment.centerLeft,
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                    left: 16.0,
+                                                    top: 13,
+                                                    bottom: 13,
+                                                    right: 16.0,
+                                                  ),
+                                                  child: new Column(
+                                                    children: <Widget>[
+                                                      RichText(
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                        softWrap: true,
+                                                        maxLines: 3,
+                                                        text: TextSpan(
+                                                          text: snapshot
                                                                   .data
                                                                   .data[index]
-                                                                  .createdat)
-                                                              .toLocal(),
-                                                          locale:
-                                                              AppLocalizations
-                                                                  .instance
-                                                                  .mlangCode),
-                                                      style: TextStyle(
-                                                        fontFamily:
-                                                            "SFProDisplayRegular",
-                                                        fontSize: 14,
-                                                        color: Color.fromRGBO(
-                                                            152, 152, 152, 1),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Row(children: [
-                                        SizedBox(
-                                          width: 10.0,
-                                        ),
-                                        Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: <Widget>[
-                                            (widget.idController == 0 ||
-                                                    widget.idController ==
-                                                        global.userId)
-                                                ? MaterialButton(
-                                                    height: 20.0,
-                                                    minWidth: 65.0,
-                                                    child: const Icon(
-                                                        LineIcons.ellipsis_h),
-                                                    onPressed: () {
-                                                      showModalBottomSheet<
-                                                          dynamic>(
-                                                        backgroundColor:
-                                                            Colors.transparent,
-                                                        isScrollControlled:
-                                                            true,
-                                                        shape: RoundedRectangleBorder(
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                                        15.0)),
-                                                        context: context,
-                                                        builder: (BuildContext
-                                                            context) {
-                                                          return Wrap(
-                                                              children: <
-                                                                  Widget>[
-                                                                Container(
-                                                                  decoration: new BoxDecoration(
-                                                                      color: Colors
-                                                                          .transparent,
-                                                                      borderRadius: new BorderRadius
-                                                                              .only(
-                                                                          topLeft: const Radius.circular(
-                                                                              30.0),
-                                                                          topRight:
-                                                                              const Radius.circular(30.0))),
-                                                                  child:
-                                                                      Container(
-                                                                    child:
-                                                                        Column(
-                                                                      children: <
-                                                                          Widget>[
-                                                                        new Column(
-                                                                            mainAxisAlignment:
-                                                                                MainAxisAlignment.center,
-                                                                            children: [
-                                                                              Container(
-                                                                                  width: screenSize.width - 45,
-                                                                                  decoration: BoxDecoration(
-                                                                                    borderRadius: BorderRadius.circular(10),
-                                                                                    color: Colors.white,
-                                                                                  ),
-                                                                                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                                                                                    ButtonTheme(
-                                                                                      minWidth: screenSize.width - 46,
-                                                                                      height: 54.0,
-                                                                                      child: FlatButton(
-                                                                                        //splashColor: Colors.transparent,
-                                                                                        //highlightColor: Colors.transparent,
-                                                                                        child: Text(
-                                                                                          AppLocalizations.instance.text('deletepost'),
-                                                                                          style: TextStyle(color: Colors.red, fontSize: 15.0, fontFamily: 'SFProDisplayMedium'),
-                                                                                        ),
-                                                                                        color: Colors.transparent,
-                                                                                        shape: new RoundedRectangleBorder(borderRadius: BorderRadius.only(topRight: Radius.circular(10.0), topLeft: Radius.circular(10.0))),
-                                                                                        onPressed: () {
-                                                                                          bloc.destroypost(snapshot.data.data[index].id);
-                                                                                          Navigator.pop(context);
-                                                                                        },
-                                                                                      ),
-                                                                                    ),
-                                                                                    const Divider(
-                                                                                      color: Color.fromRGBO(224, 224, 224, 1),
-                                                                                      height: 1,
-                                                                                      thickness: 0,
-                                                                                      indent: 20,
-                                                                                      endIndent: 20,
-                                                                                    ),
-                                                                                    ButtonTheme(
-                                                                                      minWidth: screenSize.width - 46,
-                                                                                      height: 54.0,
-                                                                                      child: FlatButton(
-                                                                                        // splashColor: Colors.transparent,
-                                                                                        //  highlightColor: Colors.transparent,
-                                                                                        child: Text(
-                                                                                          AppLocalizations.instance.text('share'),
-                                                                                          style: TextStyle(color: Colors.black, fontSize: 15.0, fontFamily: 'SFProDisplayMedium'),
-                                                                                        ),
-                                                                                        color: Colors.transparent,
-                                                                                        shape: new RoundedRectangleBorder(borderRadius: BorderRadius.only(bottomRight: Radius.circular(10.0), bottomLeft: Radius.circular(10.0))),
-                                                                                        onPressed: () {
-                                                                                          Navigator.pop(context);
-                                                                                        },
-                                                                                      ),
-                                                                                    ),
-                                                                                  ]))
-                                                                            ]),
-                                                                        Container(
-                                                                            height:
-                                                                                10),
-                                                                        ButtonTheme(
-                                                                          minWidth:
-                                                                              screenSize.width - 46,
-                                                                          height:
-                                                                              54.0,
-                                                                          child: FlatButton(
-                                                                              // splashColor: Colors.transparent,
-                                                                              // highlightColor: Colors.transparent,
-                                                                              child: Text(
-                                                                                AppLocalizations.instance.text('cancel'),
-                                                                                style: TextStyle(color: Colors.black, fontSize: 15.0, fontFamily: 'SFProDisplayMedium'),
-                                                                              ),
-                                                                              color: Colors.white,
-                                                                              shape: new RoundedRectangleBorder(borderRadius: new BorderRadius.circular(10.0)),
-                                                                              onPressed: () {
-                                                                                Navigator.pop(context);
-                                                                              }),
-                                                                        ),
-                                                                        Container(
-                                                                            height:
-                                                                                40),
-                                                                      ],
-                                                                    ),
-                                                                  ),
-                                                                )
-                                                              ]);
-                                                        },
-                                                      );
-                                                    },
-                                                  )
-                                                : MaterialButton(
-                                                    height: 20.0,
-                                                    minWidth: 65.0,
-                                                    child: const Icon(
-                                                        LineIcons.ellipsis_h),
-                                                    onPressed: () {
-                                                      showModalBottomSheet<
-                                                          dynamic>(
-                                                        backgroundColor:
-                                                            Colors.transparent,
-                                                        isScrollControlled:
-                                                            true,
-                                                        shape: RoundedRectangleBorder(
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                                        15.0)),
-                                                        context: context,
-                                                        builder: (BuildContext
-                                                            context) {
-                                                          return Wrap(
-                                                              children: <
-                                                                  Widget>[
-                                                                Container(
-                                                                  decoration: new BoxDecoration(
-                                                                      color: Colors
-                                                                          .transparent,
-                                                                      borderRadius: new BorderRadius
-                                                                              .only(
-                                                                          topLeft: const Radius.circular(
-                                                                              30.0),
-                                                                          topRight:
-                                                                              const Radius.circular(30.0))),
-                                                                  child:
-                                                                      Container(
-                                                                    child:
-                                                                        Column(
-                                                                      children: <
-                                                                          Widget>[
-                                                                        new Column(
-                                                                            mainAxisAlignment:
-                                                                                MainAxisAlignment.center,
-                                                                            children: [
-                                                                              Container(
-                                                                                  width: screenSize.width - 45,
-                                                                                  decoration: BoxDecoration(
-                                                                                    borderRadius: BorderRadius.circular(10),
-                                                                                    color: Colors.white,
-                                                                                  ),
-                                                                                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                                                                                    ButtonTheme(
-                                                                                      minWidth: screenSize.width - 46,
-                                                                                      height: 53.0,
-                                                                                      child: FlatButton(
-                                                                                        //splashColor: Colors.transparent,
-                                                                                        // highlightColor: Colors.transparent,
-                                                                                        child: Text(
-                                                                                          AppLocalizations.instance.text('reportpost'),
-                                                                                          style: TextStyle(color: Colors.red, fontSize: 15.0, fontFamily: 'SFProDisplayMedium'),
-                                                                                        ),
-                                                                                        color: Colors.transparent,
-                                                                                        shape: new RoundedRectangleBorder(borderRadius: BorderRadius.only(topRight: Radius.circular(10.0), topLeft: Radius.circular(10.0))),
-                                                                                        onPressed: () {
-                                                                                          print(snapshot.data.data[index].id);
-                                                                                          bloc.reportpost(snapshot.data.data[index].id);
-                                                                                          Navigator.pop(context);
-                                                                                          savedShow();
-                                                                                        },
-                                                                                      ),
-                                                                                    ),
-                                                                                    const Divider(
-                                                                                      color: Color.fromRGBO(224, 224, 224, 1),
-                                                                                      height: 1,
-                                                                                      thickness: 0,
-                                                                                      indent: 20,
-                                                                                      endIndent: 20,
-                                                                                    ),
-                                                                                    ButtonTheme(
-                                                                                      minWidth: screenSize.width - 46,
-                                                                                      height: 53.0,
-                                                                                      child: FlatButton(
-                                                                                        //splashColor: Colors.transparent,
-                                                                                        // highlightColor: Colors.transparent,
-                                                                                        child: Text(
-                                                                                          AppLocalizations.instance.text('share'),
-                                                                                          style: TextStyle(color: Colors.black, fontSize: 15.0, fontFamily: 'SFProDisplayMedium'),
-                                                                                        ),
-                                                                                        color: Colors.transparent,
-                                                                                        shape: new RoundedRectangleBorder(borderRadius: BorderRadius.only(bottomRight: Radius.circular(10.0), bottomLeft: Radius.circular(10.0))),
-                                                                                        onPressed: () {
-                                                                                          Navigator.pop(context);
-                                                                                        },
-                                                                                      ),
-                                                                                    ),
-                                                                                  ]))
-                                                                            ]),
-                                                                        Container(
-                                                                            height:
-                                                                                10),
-                                                                        ButtonTheme(
-                                                                          minWidth:
-                                                                              screenSize.width - 46,
-                                                                          height:
-                                                                              53.0,
-                                                                          child: FlatButton(
-                                                                              // splashColor: Colors.transparent,
-                                                                              // highlightColor: Colors.transparent,
-                                                                              child: Text(
-                                                                                AppLocalizations.instance.text('cancel'),
-                                                                                style: TextStyle(color: Colors.black, fontSize: 15.0, fontFamily: 'SFProDisplayMedium'),
-                                                                              ),
-                                                                              color: Colors.white,
-                                                                              shape: new RoundedRectangleBorder(borderRadius: new BorderRadius.circular(10.0)),
-                                                                              onPressed: () {
-                                                                                Navigator.pop(context);
-                                                                              }),
-                                                                        ),
-                                                                        Container(
-                                                                            height:
-                                                                                40),
-                                                                      ],
-                                                                    ),
-                                                                  ),
-                                                                )
-                                                              ]);
-                                                        },
-                                                      );
-                                                    },
-                                                  ),
-                                          ],
-                                        ),
-                                      ]),
-                                    ]),
-                                GestureDetector(
-                                  onDoubleTap: () {
-                                    (snapshot.data.data[index].like == "true")
-                                        ? bloc.unlikepost(
-                                            snapshot.data.data[index].id)
-                                        : bloc.likepost(
-                                            snapshot.data.data[index].id);
-                                  },
-                                  child: new Container(
-                                    child: Stack(children: <Widget>[
-                                      new Container(
-                                        padding: EdgeInsets.only(
-                                          left: 0,
-                                          right: 0,
-                                        ),
-                                        child: ClipRRect(
-                                          borderRadius:
-                                              new BorderRadius.circular(0.0),
-                                          child: checkFileType(snapshot.data
-                                                      .data[index].image) ==
-                                                  "image"
-                                              ? CachedNetworkImage(
-                                                  width: screenSize.width,
-                                                  placeholder: (c, d) {
-                                                    return Center(
-                                                      child:
-                                                          CircularProgressIndicator(
-                                                        strokeWidth: 2.0,
-                                                      ),
-                                                    );
-                                                  },
-                                                  fit: BoxFit.cover,
-                                                  imageUrl: snapshot
-                                                      .data.data[index].image,
-                                                )
-                                              : VideoClip(
-                                                  url: snapshot
-                                                      .data.data[index].image,
-                                                ),
-                                        ),
-                                      ),
-                                    ]),
-                                  ),
-                                ),
-                                SizedBox(
-                                  height: 0,
-                                ),
-                                Container(
-                                  width: screenSize.width,
-                                  child: new Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        SizedBox(
-                                          width: screenSize.width,
-                                          child: Container(
-                                            alignment: Alignment.centerLeft,
-                                            padding: const EdgeInsets.only(
-                                              left: 16.0,
-                                              top: 13,
-                                              bottom: 13,
-                                              right: 16.0,
-                                            ),
-                                            child: new Column(
-                                              children: <Widget>[
-                                                RichText(
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  softWrap: true,
-                                                  maxLines: 3,
-                                                  text: TextSpan(
-                                                    text: snapshot
-                                                            .data
-                                                            .data[index]
-                                                            .user
-                                                            .data
-                                                            .name +
-                                                        ' ',
-                                                    style: TextStyle(
-                                                      fontFamily:
-                                                          "SFProDisplayBold",
-                                                      fontSize: 13.7,
-                                                      color: Color.fromRGBO(
-                                                          28, 28, 28, 1),
-                                                    ),
-                                                    children: <TextSpan>[
-                                                      TextSpan(
-                                                        text: snapshot
-                                                            .data
-                                                            .data[index]
-                                                            .description,
-                                                        style: TextStyle(
-                                                          fontFamily:
-                                                              "SFProDisplayMedium",
-                                                          fontSize: 13.7,
-                                                          color: Color.fromRGBO(
-                                                              28, 28, 28, 1),
+                                                                  .user
+                                                                  .data
+                                                                  .name +
+                                                              ' ',
+                                                          style: TextStyle(
+                                                            fontFamily:
+                                                                "SFProDisplayBold",
+                                                            fontSize: 13.7,
+                                                            color:
+                                                                Color.fromRGBO(
+                                                                    28,
+                                                                    28,
+                                                                    28,
+                                                                    1),
+                                                          ),
+                                                          children: <TextSpan>[
+                                                            TextSpan(
+                                                              text: snapshot
+                                                                  .data
+                                                                  .data[index]
+                                                                  .description,
+                                                              style: TextStyle(
+                                                                fontFamily:
+                                                                    "SFProDisplayMedium",
+                                                                fontSize: 13.7,
+                                                                color: Color
+                                                                    .fromRGBO(
+                                                                        28,
+                                                                        28,
+                                                                        28,
+                                                                        1),
+                                                              ),
+                                                            ),
+                                                          ],
                                                         ),
                                                       ),
                                                     ],
                                                   ),
                                                 ),
-                                              ],
-                                            ),
+                                              ),
+                                            ]),
+                                      ),
+                                      Column(children: [
+                                        Container(
+                                          padding: const EdgeInsets.only(
+                                              bottom: 10.0),
+                                          child: const Divider(
+                                            color: Color.fromRGBO(
+                                                207, 207, 207, 1),
+                                            height: 1,
+                                            thickness: 0,
+                                            indent: 16,
+                                            endIndent: 16,
                                           ),
                                         ),
-                                      ]),
-                                ),
-                                Column(children: [
-                                  Container(
-                                    padding:
-                                        const EdgeInsets.only(bottom: 10.0),
-                                    child: const Divider(
-                                      color: Color.fromRGBO(224, 224, 224, 1),
-                                      height: 1,
-                                      thickness: 0,
-                                      indent: 16,
-                                      endIndent: 16,
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.only(
-                                      top: 0.0,
-                                      bottom: 13,
-                                      left: 20,
-                                      right: 26,
-                                    ),
-                                    child: new Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
                                         Container(
-                                            child: Row(children: [
-                                          Row(
-                                            children: [
-                                              GestureDetector(
-                                                onTap: () {
-                                                  (snapshot.data.data[index]
-                                                              .like ==
-                                                          "true")
-                                                      ? bloc.unlikepost(snapshot
-                                                          .data.data[index].id)
-                                                      : bloc.likepost(snapshot
-                                                          .data.data[index].id);
-                                                },
-                                                child: (snapshot.data
-                                                            .data[index].like ==
-                                                        "true")
-                                                    ? Icon(Icons.favorite,
-                                                        color: Colors.red,
-                                                        size: 23)
-                                                    : Icon(
-                                                        Icons.favorite_border,
-                                                        size: 23,
-                                                        color: Colors.black45,
-                                                      ),
-                                              ),
-                                              SizedBox(
-                                                width: 5.0,
-                                              ),
-                                              Text(
-                                                snapshot.data.data[index]
-                                                        .likecount
-                                                        .toString() +
-                                                    ' ' +
-                                                    AppLocalizations.instance
-                                                        .text('like'),
-                                                textAlign: TextAlign.start,
-                                                style: TextStyle(
-                                                  fontFamily:
-                                                      "SFProDisplayMedium",
-                                                  fontSize: 14.5,
-                                                  color: Colors.black45,
-                                                ),
-                                              ),
-                                            ],
+                                          padding: const EdgeInsets.only(
+                                            top: 0.0,
+                                            bottom: 13,
+                                            left: 20,
+                                            right: 26,
                                           ),
-                                        ])),
-                                        GestureDetector(
-                                          onTap: () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) => Comments(
-                                                    snapshot
-                                                        .data.data[index].id),
-                                              ),
-                                            );
-                                          },
-                                          child: Container(
-                                            child: Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: [
-                                                  Transform(
-                                                    alignment: Alignment.center,
-                                                    transform:
-                                                        Matrix4.rotationY(
-                                                            math.pi),
-                                                    child: Icon(
-                                                        Feather.message_circle,
-                                                        color: Colors.black45,
-                                                        size: 21.7),
-                                                  ),
-                                                  SizedBox(
-                                                    width: 5.0,
-                                                  ),
-                                                  Center(
-                                                    child: Text(
-                                                      AppLocalizations.instance
-                                                          .text('comments'),
+                                          child: new Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Container(
+                                                  child: Row(children: [
+                                                Row(
+                                                  children: [
+                                                    GestureDetector(
+                                                      onTap: () {
+                                                        (snapshot
+                                                                    .data
+                                                                    .data[index]
+                                                                    .like ==
+                                                                "true")
+                                                            ? bloc.unlikepost(
+                                                                snapshot
+                                                                    .data
+                                                                    .data[index]
+                                                                    .id)
+                                                            : bloc.likepost(
+                                                                snapshot
+                                                                    .data
+                                                                    .data[index]
+                                                                    .id);
+                                                      },
+                                                      child: (snapshot
+                                                                  .data
+                                                                  .data[index]
+                                                                  .like ==
+                                                              "true")
+                                                          ? Icon(Icons.favorite,
+                                                              color: Colors.red,
+                                                              size: 23)
+                                                          : Icon(
+                                                              Icons
+                                                                  .favorite_border,
+                                                              size: 23,
+                                                              color: Colors
+                                                                  .black45,
+                                                            ),
+                                                    ),
+                                                    SizedBox(
+                                                      width: 5.0,
+                                                    ),
+                                                    Text(
+                                                      snapshot.data.data[index]
+                                                              .likecount
+                                                              .toString() +
+                                                          ' ' +
+                                                          AppLocalizations
+                                                              .instance
+                                                              .text('like'),
                                                       textAlign:
                                                           TextAlign.start,
                                                       style: TextStyle(
@@ -942,51 +1049,108 @@ class MyTimelinePage extends State<StorytellerProfile> {
                                                         color: Colors.black45,
                                                       ),
                                                     ),
-                                                  )
-                                                ]),
+                                                  ],
+                                                ),
+                                              ])),
+                                              GestureDetector(
+                                                onTap: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (context) =>
+                                                          Comments(snapshot.data
+                                                              .data[index].id),
+                                                    ),
+                                                  );
+                                                },
+                                                child: Container(
+                                                  child: Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        Transform(
+                                                          alignment:
+                                                              Alignment.center,
+                                                          transform:
+                                                              Matrix4.rotationY(
+                                                                  math.pi),
+                                                          child: Icon(
+                                                              Feather
+                                                                  .message_circle,
+                                                              color: Colors
+                                                                  .black45,
+                                                              size: 21.7),
+                                                        ),
+                                                        SizedBox(
+                                                          width: 5.0,
+                                                        ),
+                                                        Center(
+                                                          child: Text(
+                                                            AppLocalizations
+                                                                .instance
+                                                                .text(
+                                                                    'comments'),
+                                                            textAlign:
+                                                                TextAlign.start,
+                                                            style: TextStyle(
+                                                              fontFamily:
+                                                                  "SFProDisplayMedium",
+                                                              fontSize: 14.5,
+                                                              color: Colors
+                                                                  .black45,
+                                                            ),
+                                                          ),
+                                                        )
+                                                      ]),
+                                                ),
+                                              ),
+                                              Container(
+                                                child: Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .center,
+                                                    children: [
+                                                      Icon(
+                                                          Icons.bookmark_border,
+                                                          color: Colors.black45,
+                                                          size: 22.6),
+                                                      SizedBox(
+                                                        width: 5.0,
+                                                      ),
+                                                      Text(
+                                                        AppLocalizations
+                                                            .instance
+                                                            .text('save'),
+                                                        textAlign:
+                                                            TextAlign.start,
+                                                        style: TextStyle(
+                                                          fontFamily:
+                                                              "SFProDisplayMedium",
+                                                          fontSize: 14.5,
+                                                          color: Colors.black45,
+                                                        ),
+                                                      )
+                                                    ]),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                         Container(
-                                          child: Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: [
-                                                Icon(Icons.bookmark_border,
-                                                    color: Colors.black45,
-                                                    size: 22.6),
-                                                SizedBox(
-                                                  width: 5.0,
-                                                ),
-                                                Text(
-                                                  AppLocalizations.instance
-                                                      .text('save'),
-                                                  textAlign: TextAlign.start,
-                                                  style: TextStyle(
-                                                    fontFamily:
-                                                        "SFProDisplayMedium",
-                                                    fontSize: 14.5,
-                                                    color: Colors.black45,
-                                                  ),
-                                                )
-                                              ]),
+                                          padding: const EdgeInsets.only(
+                                              bottom: 10.0),
+                                          child: const Divider(
+                                            color: Color.fromRGBO(
+                                                207, 207, 207, 1),
+                                            height: 1,
+                                            thickness: 0,
+                                            indent: 0,
+                                            endIndent: 0,
+                                          ),
                                         ),
-                                      ],
-                                    ),
-                                  ),
-                                  Container(
-                                    padding:
-                                        const EdgeInsets.only(bottom: 10.0),
-                                    child: const Divider(
-                                      color: Color.fromRGBO(224, 224, 224, 1),
-                                      height: 1,
-                                      thickness: 0,
-                                      indent: 0,
-                                      endIndent: 0,
-                                    ),
-                                  ),
-                                ])
-                              ],
-                            );
+                                      ])
+                                    ],
+                                  );
                           },
                           childCount: snapshot.data.data.length,
                         ),
@@ -1019,22 +1183,270 @@ class MyTimelinePage extends State<StorytellerProfile> {
     );
   }
 
+  _cropImage(filePath) async {
+    File croppedImage = await ImageCropper.cropImage(
+      sourcePath: filePath,
+      maxWidth: 1080,
+      maxHeight: 1080,
+    );
+    if (croppedImage != null) {
+      _media = croppedImage;
+      Navigator.pop(context);
+      setState(() {});
+      sendUploadFile();
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => StoryTellerBottom(),
+        ),
+      );
+    }
+  }
+
+  void checkMediaType() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: new Text(
+            AppLocalizations.instance.text('fromwhere'),
+            style: TextStyle(
+              fontFamily: 'SFProDisplayBold',
+              fontSize: 23.5,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: new Text(
+            AppLocalizations.instance.text('selectfile'),
+            textAlign: TextAlign.left,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15.0),
+          ),
+          actions: <Widget>[
+            new FlatButton(
+              onPressed: () {
+                Navigator.pop(context);
+                isVideo = false;
+                _getImage();
+              },
+              child: new Text(
+                AppLocalizations.instance.text('image'),
+              ),
+            ),
+            new FlatButton(
+              onPressed: () {
+                Navigator.pop(context);
+                isVideo = true;
+                _getVideo();
+              },
+              child: new Text(
+                AppLocalizations.instance.text('video'),
+              ),
+            )
+          ],
+        );
+      },
+    );
+  }
+
+  Future _getImage() async {
+    try {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: new Text(
+              AppLocalizations.instance.text('image'),
+              style: TextStyle(
+                fontFamily: 'SFProDisplayBold',
+                fontSize: 23.5,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            content: new Text(
+              AppLocalizations.instance.text('camerachoose'),
+              style: TextStyle(
+                fontFamily: 'SFProDisplayRegular',
+              ),
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15.0),
+            ),
+            actions: <Widget>[
+              Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: <Widget>[
+                    new FlatButton(
+                      child: new Text(
+                        AppLocalizations.instance.text('gallery'),
+                        style: TextStyle(
+                          fontFamily: 'SFProDisplayMedium',
+                          color: Color.fromRGBO(0, 141, 252, 1),
+                        ),
+                      ),
+                      onPressed: () async {
+                        PickedFile pickedFile = await ImagePicker().getImage(
+                          source: ImageSource.gallery,
+                          maxWidth: 1800,
+                          maxHeight: 1800,
+                        );
+                        _cropImage(pickedFile.path);
+                      },
+                    ),
+                    new FlatButton(
+                      child: new Text(
+                        AppLocalizations.instance.text('camera'),
+                        style: TextStyle(
+                          fontFamily: 'SFProDisplayMedium',
+                          color: Color.fromRGBO(0, 141, 252, 1),
+                        ),
+                      ),
+                      onPressed: () async {
+                        PickedFile pickedFile = await ImagePicker().getImage(
+                          source: ImageSource.camera,
+                          maxWidth: 1800,
+                          maxHeight: 1800,
+                        );
+                        _cropImage(pickedFile.path);
+                      },
+                    ),
+                    new FlatButton(
+                      child: new Text(
+                        AppLocalizations.instance.text('cancel'),
+                        style: TextStyle(
+                          fontFamily: 'SFProDisplayMedium',
+                          color: Color.fromRGBO(0, 141, 252, 1),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ]),
+            ],
+          );
+        },
+      );
+    } catch (error) {}
+  }
+
+  Future _getVideo() async {
+    try {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: new Text(
+              AppLocalizations.instance.text('video'),
+              style: TextStyle(
+                fontFamily: 'SFProDisplayBold',
+                fontSize: 23.5,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            content: new Text(
+              "Now open the gallery, choose your video and upload it to teling.",
+              style: TextStyle(
+                fontFamily: 'SFProDisplayRegular',
+              ),
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15.0),
+            ),
+            actions: <Widget>[
+              Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: <Widget>[
+                    new FlatButton(
+                      child: new Text(
+                        AppLocalizations.instance.text('gallery'),
+                        style: TextStyle(
+                          fontFamily: 'SFProDisplayMedium',
+                          color: Color.fromRGBO(0, 141, 252, 1),
+                        ),
+                      ),
+                      onPressed: () async {
+                        Future<File> video1 =
+                            ImagePicker.pickVideo(source: ImageSource.gallery);
+
+                        video1.then((file) async {
+                          setState(() {
+                            _media = file;
+                            _controller = VideoPlayerController.file(_media)                          
+                            ..initialize().then(
+                              (_) {
+                                setState(() {});
+                                _duration = _controller.value.duration;
+                                sendUploadFile();
+                              },
+                            );
+                          });
+                          Navigator.pop(context);
+                        });
+                      },
+                    ),
+                    FlatButton(
+                      child: new Text(
+                        "Camera",
+                        style: TextStyle(
+                          fontFamily: 'SFProDisplayMedium',
+                          color: Color.fromRGBO(0, 141, 252, 1),
+                        ),
+                      ),
+                      onPressed: () async {
+                        Future<File> video2 = ImagePicker.pickVideo(
+                            source: ImageSource.camera,
+                            maxDuration: Duration(seconds: 30));
+
+                        video2.then((file) async {
+                          setState(() {
+                            _media = file;
+                            _controller = VideoPlayerController.file(_media)
+                            ..initialize().then(
+                              (_) {
+                                setState(() {});
+                                _duration = _controller.value.duration;
+                                sendUploadFile();
+                              },
+                            );
+                          });
+                          Navigator.pop(context);
+                        });
+                      },
+                    ),
+                    new FlatButton(
+                      child: new Text(
+                        AppLocalizations.instance.text('cancel'),
+                        style: TextStyle(
+                          fontFamily: 'SFProDisplayMedium',
+                          color: Color.fromRGBO(0, 141, 252, 1),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ]),
+            ],
+          );
+        },
+      );
+    } catch (error) {}
+  }
+
   Widget buildProfileAdd(
       context, AsyncSnapshot<UserModel> user, int userowner) {
     return user.data.user.badge == 'true'
         ? Container(
             child: IconButton(
-            icon: Icon(LineIcons.plus, size: 31.0),
-            padding: EdgeInsets.only(left: 15.0, bottom: 0),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => EditCover(),
-                ),
-              );
-            },
-          ))
+              icon: Icon(LineIcons.plus, size: 31.0),
+              padding: EdgeInsets.only(left: 15.0, bottom: 0),
+              onPressed: () {
+                checkMediaType();
+              },
+            ),
+          )
         : Container(
             child: IconButton(
             icon: Icon(LineIcons.plus, size: 31.0),
@@ -1061,38 +1473,890 @@ class MyTimelinePage extends State<StorytellerProfile> {
                   icon: Icon(LineIcons.bars, size: 30.0),
                   padding: EdgeInsets.only(right: 20.0, bottom: 2),
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => SettingsForm(),
-                      ),
+                    showModalBottomSheet<dynamic>(
+                      backgroundColor: Colors.white,
+                      isScrollControlled: true,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15.0)),
+                      context: context,
+                      builder: (BuildContext context) {
+                        return Wrap(children: <Widget>[
+                          Container(
+                            decoration: new BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: new BorderRadius.only(
+                                    topLeft: const Radius.circular(30.0),
+                                    topRight: const Radius.circular(30.0))),
+                            child: Container(
+                              child: Column(
+                                children: <Widget>[
+                                  new Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Container(
+                                            // width: screenSize.width - 45,
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              color: Colors.white,
+                                            ),
+                                            child: Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  SizedBox(height: 8),
+                                                  InkWell(
+                                                    onTap: () {
+                                                      Navigator.pop(context);
+                                                      Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder: (context) =>
+                                                              EditUserForm(),
+                                                        ),
+                                                      );
+                                                    },
+                                                    child: new Align(
+                                                      alignment:
+                                                          Alignment.center,
+                                                      child: ListTile(
+                                                        leading: Container(
+                                                          height:
+                                                              kToolbarHeight /
+                                                                  1.30,
+                                                          width:
+                                                              kToolbarHeight /
+                                                                  1.30,
+                                                          child: Icon(
+                                                              LineIcons.user,
+                                                              color:
+                                                                  Colors.black),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: Colors
+                                                                .transparent,
+                                                            // borderRadius: BorderRadius.circular(50.0),
+                                                          ),
+                                                        ),
+                                                        title: Padding(
+                                                          padding:
+                                                              EdgeInsets.only(
+                                                                  left: 0),
+                                                          child: Text(
+                                                            AppLocalizations
+                                                                .instance
+                                                                .text(
+                                                                    'editprofile'),
+                                                            style: TextStyle(
+                                                                color: Colors
+                                                                    .black,
+                                                                fontSize: 16.3,
+                                                                fontFamily:
+                                                                    'SFProDisplayMedium'),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const Divider(
+                                                    color: Color.fromRGBO(
+                                                        224, 224, 224, 1),
+                                                    height: 1,
+                                                    thickness: 0,
+                                                    indent: 20,
+                                                    endIndent: 20,
+                                                  ),
+                                                  InkWell(
+                                                    onTap: () {
+                                                      Navigator.pop(context);
+                                                      Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder: (context) =>
+                                                              EditCover(),
+                                                        ),
+                                                      );
+                                                    },
+                                                    child: new Align(
+                                                      alignment:
+                                                          Alignment.center,
+                                                      child: ListTile(
+                                                        leading: Container(
+                                                          height:
+                                                              kToolbarHeight /
+                                                                  1.30,
+                                                          width:
+                                                              kToolbarHeight /
+                                                                  1.30,
+                                                          child: Icon(
+                                                              LineIcons.image,
+                                                              color:
+                                                                  Colors.black),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: Colors
+                                                                .transparent,
+                                                            // borderRadius: BorderRadius.circular(50.0),
+                                                          ),
+                                                        ),
+                                                        title: Padding(
+                                                          padding:
+                                                              EdgeInsets.only(
+                                                                  left: 0),
+                                                          child: Text(
+                                                            AppLocalizations
+                                                                .instance
+                                                                .text('cover'),
+                                                            style: TextStyle(
+                                                                color: Colors
+                                                                    .black,
+                                                                fontSize: 16.3,
+                                                                fontFamily:
+                                                                    'SFProDisplayMedium'),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const Divider(
+                                                    color: Color.fromRGBO(
+                                                        224, 224, 224, 1),
+                                                    height: 1,
+                                                    thickness: 0,
+                                                    indent: 20,
+                                                    endIndent: 20,
+                                                  ),
+                                                  InkWell(
+                                                    onTap: () {
+                                                      Navigator.pop(context);
+                                                      Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder: (context) =>
+                                                              BlockedUsers(),
+                                                        ),
+                                                      );
+                                                    },
+                                                    child: new Align(
+                                                      alignment:
+                                                          Alignment.center,
+                                                      child: ListTile(
+                                                        leading: Container(
+                                                          height:
+                                                              kToolbarHeight /
+                                                                  1.30,
+                                                          width:
+                                                              kToolbarHeight /
+                                                                  1.30,
+                                                          child: Icon(
+                                                              LineIcons
+                                                                  .bookmark_o,
+                                                              color:
+                                                                  Colors.black),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: Colors
+                                                                .transparent,
+                                                            // borderRadius: BorderRadius.circular(50.0),
+                                                          ),
+                                                        ),
+                                                        title: Padding(
+                                                          padding:
+                                                              EdgeInsets.only(
+                                                                  left: 0),
+                                                          child: Text(
+                                                            AppLocalizations
+                                                                .instance
+                                                                .text(
+                                                                    'savedpost'),
+                                                            style: TextStyle(
+                                                                color: Colors
+                                                                    .black,
+                                                                fontSize: 16.3,
+                                                                fontFamily:
+                                                                    'SFProDisplayMedium'),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const Divider(
+                                                    color: Color.fromRGBO(
+                                                        224, 224, 224, 1),
+                                                    height: 1,
+                                                    thickness: 0,
+                                                    indent: 20,
+                                                    endIndent: 20,
+                                                  ),
+                                                  InkWell(
+                                                    onTap: () {
+                                                      Navigator.pop(context);
+                                                      Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder: (context) =>
+                                                              BlockedUsers(),
+                                                        ),
+                                                      );
+                                                    },
+                                                    child: new Align(
+                                                      alignment:
+                                                          Alignment.center,
+                                                      child: ListTile(
+                                                        leading: Container(
+                                                          height:
+                                                              kToolbarHeight /
+                                                                  1.30,
+                                                          width:
+                                                              kToolbarHeight /
+                                                                  1.30,
+                                                          child: Icon(
+                                                              LineIcons.users,
+                                                              color:
+                                                                  Colors.black),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: Colors
+                                                                .transparent,
+                                                            // borderRadius: BorderRadius.circular(50.0),
+                                                          ),
+                                                        ),
+                                                        title: Padding(
+                                                          padding:
+                                                              EdgeInsets.only(
+                                                                  left: 0),
+                                                          child: Text(
+                                                            AppLocalizations
+                                                                .instance
+                                                                .text(
+                                                                    'blockedusers'),
+                                                            style: TextStyle(
+                                                                color: Colors
+                                                                    .black,
+                                                                fontSize: 16.3,
+                                                                fontFamily:
+                                                                    'SFProDisplayMedium'),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const Divider(
+                                                    color: Color.fromRGBO(
+                                                        224, 224, 224, 1),
+                                                    height: 1,
+                                                    thickness: 0,
+                                                    indent: 20,
+                                                    endIndent: 20,
+                                                  ),
+                                                  InkWell(
+                                                    onTap: () async {
+                                                      Navigator.pop(context);
+                                                      await OpenAppSettings
+                                                          .openAppSettings();
+                                                    },
+                                                    child: new Align(
+                                                      alignment:
+                                                          Alignment.center,
+                                                      child: ListTile(
+                                                        leading: Container(
+                                                          height:
+                                                              kToolbarHeight /
+                                                                  1.30,
+                                                          width:
+                                                              kToolbarHeight /
+                                                                  1.30,
+                                                          child: Icon(
+                                                              LineIcons
+                                                                  .language,
+                                                              color:
+                                                                  Colors.black),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: Colors
+                                                                .transparent,
+                                                            // borderRadius: BorderRadius.circular(30.0),
+                                                          ),
+                                                        ),
+                                                        title: Padding(
+                                                          padding:
+                                                              EdgeInsets.only(
+                                                                  left: 0),
+                                                          child: Text(
+                                                            AppLocalizations
+                                                                .instance
+                                                                .text(
+                                                                    'language'),
+                                                            style: TextStyle(
+                                                                color: Colors
+                                                                    .black,
+                                                                fontSize: 16.3,
+                                                                fontFamily:
+                                                                    'SFProDisplayMedium'),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const Divider(
+                                                    color: Color.fromRGBO(
+                                                        224, 224, 224, 1),
+                                                    height: 1,
+                                                    thickness: 0,
+                                                    indent: 20,
+                                                    endIndent: 20,
+                                                  ),
+                                                  InkWell(
+                                                    onTap: () {
+                                                      Navigator.pop(context);
+                                                      Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder: (context) =>
+                                                              SettingsForm(),
+                                                        ),
+                                                      );
+                                                    },
+                                                    child: new Align(
+                                                      alignment:
+                                                          Alignment.center,
+                                                      child: ListTile(
+                                                        leading: Container(
+                                                          height:
+                                                              kToolbarHeight /
+                                                                  1.30,
+                                                          width:
+                                                              kToolbarHeight /
+                                                                  1.30,
+                                                          child: Icon(
+                                                              LineIcons.cog,
+                                                              color:
+                                                                  Colors.black),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: Colors
+                                                                .transparent,
+                                                            // borderRadius: BorderRadius.circular(50.0),
+                                                          ),
+                                                        ),
+                                                        title: Padding(
+                                                          padding:
+                                                              EdgeInsets.only(
+                                                                  left: 0),
+                                                          child: Text(
+                                                            AppLocalizations
+                                                                .instance
+                                                                .text(
+                                                                    'advanceset'),
+                                                            style: TextStyle(
+                                                                color: Colors
+                                                                    .black,
+                                                                fontSize: 16.3,
+                                                                fontFamily:
+                                                                    'SFProDisplayMedium'),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const Divider(
+                                                    color: Color.fromRGBO(
+                                                        224, 224, 224, 1),
+                                                    height: 1,
+                                                    thickness: 0,
+                                                    indent: 20,
+                                                    endIndent: 20,
+                                                  ),
+                                                ]))
+                                      ]),
+                                  Container(height: 10),
+                                  ButtonTheme(
+                                    //minWidth:
+                                    //screenSize.width -45.8,
+                                    height: 56.0,
+                                    child: FlatButton(
+                                        // splashColor: Colors.transparent,
+                                        // highlightColor: Colors.transparent,
+                                        child: Text(
+                                          AppLocalizations.instance
+                                              .text('cancel'),
+                                          style: TextStyle(
+                                              color: Colors.black,
+                                              fontSize: 16.3,
+                                              fontFamily: 'SFProDisplayMedium'),
+                                        ),
+                                        color: Colors.white,
+                                        shape: new RoundedRectangleBorder(
+                                            borderRadius:
+                                                new BorderRadius.circular(
+                                                    10.0)),
+                                        onPressed: () {
+                                          Navigator.pop(context);
+                                        }),
+                                  ),
+                                  Container(height: 40),
+                                ],
+                              ),
+                            ),
+                          )
+                        ]);
+                      },
                     );
                   },
                 ))
               ]))
-            : Row(children: [
+            : Container(
+                child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
                 Container(
                     child: IconButton(
                   icon: Icon(LineIcons.bars, size: 30.0),
                   padding: EdgeInsets.only(right: 20.0, bottom: 2),
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => SettingsForm(),
-                      ),
+                    showModalBottomSheet<dynamic>(
+                      backgroundColor: Colors.white,
+                      isScrollControlled: true,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15.0)),
+                      context: context,
+                      builder: (BuildContext context) {
+                        return Wrap(children: <Widget>[
+                          Container(
+                            decoration: new BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: new BorderRadius.only(
+                                    topLeft: const Radius.circular(30.0),
+                                    topRight: const Radius.circular(30.0))),
+                            child: Container(
+                              child: Column(
+                                children: <Widget>[
+                                  new Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Container(
+                                            // width: screenSize.width - 45,
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              color: Colors.white,
+                                            ),
+                                            child: Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  SizedBox(height: 8),
+                                                  InkWell(
+                                                    onTap: () {
+                                                      Navigator.pop(context);
+                                                      Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder: (context) =>
+                                                              EditUserForm(),
+                                                        ),
+                                                      );
+                                                    },
+                                                    child: new Align(
+                                                      alignment:
+                                                          Alignment.center,
+                                                      child: ListTile(
+                                                        leading: Container(
+                                                          height:
+                                                              kToolbarHeight /
+                                                                  1.30,
+                                                          width:
+                                                              kToolbarHeight /
+                                                                  1.30,
+                                                          child: Icon(
+                                                              LineIcons.user,
+                                                              color:
+                                                                  Colors.black),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: Colors
+                                                                .transparent,
+                                                            // borderRadius: BorderRadius.circular(50.0),
+                                                          ),
+                                                        ),
+                                                        title: Padding(
+                                                          padding:
+                                                              EdgeInsets.only(
+                                                                  left: 0),
+                                                          child: Text(
+                                                            AppLocalizations
+                                                                .instance
+                                                                .text(
+                                                                    'editprofile'),
+                                                            style: TextStyle(
+                                                                color: Colors
+                                                                    .black,
+                                                                fontSize: 16.3,
+                                                                fontFamily:
+                                                                    'SFProDisplayMedium'),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const Divider(
+                                                    color: Color.fromRGBO(
+                                                        224, 224, 224, 1),
+                                                    height: 1,
+                                                    thickness: 0,
+                                                    indent: 20,
+                                                    endIndent: 20,
+                                                  ),
+                                                  InkWell(
+                                                    onTap: () {
+                                                      Navigator.pop(context);
+                                                      Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder: (context) =>
+                                                              EditCover(),
+                                                        ),
+                                                      );
+                                                    },
+                                                    child: new Align(
+                                                      alignment:
+                                                          Alignment.center,
+                                                      child: ListTile(
+                                                        leading: Container(
+                                                          height:
+                                                              kToolbarHeight /
+                                                                  1.30,
+                                                          width:
+                                                              kToolbarHeight /
+                                                                  1.30,
+                                                          child: Icon(
+                                                              LineIcons.image,
+                                                              color:
+                                                                  Colors.black),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: Colors
+                                                                .transparent,
+                                                            // borderRadius: BorderRadius.circular(50.0),
+                                                          ),
+                                                        ),
+                                                        title: Padding(
+                                                          padding:
+                                                              EdgeInsets.only(
+                                                                  left: 0),
+                                                          child: Text(
+                                                            AppLocalizations
+                                                                .instance
+                                                                .text('cover'),
+                                                            style: TextStyle(
+                                                                color: Colors
+                                                                    .black,
+                                                                fontSize: 16.3,
+                                                                fontFamily:
+                                                                    'SFProDisplayMedium'),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const Divider(
+                                                    color: Color.fromRGBO(
+                                                        224, 224, 224, 1),
+                                                    height: 1,
+                                                    thickness: 0,
+                                                    indent: 20,
+                                                    endIndent: 20,
+                                                  ),
+                                                  InkWell(
+                                                    onTap: () {
+                                                      Navigator.pop(context);
+                                                      Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder: (context) =>
+                                                              BlockedUsers(),
+                                                        ),
+                                                      );
+                                                    },
+                                                    child: new Align(
+                                                      alignment:
+                                                          Alignment.center,
+                                                      child: ListTile(
+                                                        leading: Container(
+                                                          height:
+                                                              kToolbarHeight /
+                                                                  1.30,
+                                                          width:
+                                                              kToolbarHeight /
+                                                                  1.30,
+                                                          child: Icon(
+                                                              LineIcons
+                                                                  .bookmark_o,
+                                                              color:
+                                                                  Colors.black),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: Colors
+                                                                .transparent,
+                                                            // borderRadius: BorderRadius.circular(50.0),
+                                                          ),
+                                                        ),
+                                                        title: Padding(
+                                                          padding:
+                                                              EdgeInsets.only(
+                                                                  left: 0),
+                                                          child: Text(
+                                                            AppLocalizations
+                                                                .instance
+                                                                .text(
+                                                                    'savedpost'),
+                                                            style: TextStyle(
+                                                                color: Colors
+                                                                    .black,
+                                                                fontSize: 16.3,
+                                                                fontFamily:
+                                                                    'SFProDisplayMedium'),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const Divider(
+                                                    color: Color.fromRGBO(
+                                                        224, 224, 224, 1),
+                                                    height: 1,
+                                                    thickness: 0,
+                                                    indent: 20,
+                                                    endIndent: 20,
+                                                  ),
+                                                  InkWell(
+                                                    onTap: () {
+                                                      Navigator.pop(context);
+                                                      Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder: (context) =>
+                                                              BlockedUsers(),
+                                                        ),
+                                                      );
+                                                    },
+                                                    child: new Align(
+                                                      alignment:
+                                                          Alignment.center,
+                                                      child: ListTile(
+                                                        leading: Container(
+                                                          height:
+                                                              kToolbarHeight /
+                                                                  1.30,
+                                                          width:
+                                                              kToolbarHeight /
+                                                                  1.30,
+                                                          child: Icon(
+                                                              LineIcons.users,
+                                                              color:
+                                                                  Colors.black),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: Colors
+                                                                .transparent,
+                                                            // borderRadius: BorderRadius.circular(50.0),
+                                                          ),
+                                                        ),
+                                                        title: Padding(
+                                                          padding:
+                                                              EdgeInsets.only(
+                                                                  left: 0),
+                                                          child: Text(
+                                                            AppLocalizations
+                                                                .instance
+                                                                .text(
+                                                                    'blockedusers'),
+                                                            style: TextStyle(
+                                                                color: Colors
+                                                                    .black,
+                                                                fontSize: 16.3,
+                                                                fontFamily:
+                                                                    'SFProDisplayMedium'),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const Divider(
+                                                    color: Color.fromRGBO(
+                                                        224, 224, 224, 1),
+                                                    height: 1,
+                                                    thickness: 0,
+                                                    indent: 20,
+                                                    endIndent: 20,
+                                                  ),
+                                                  InkWell(
+                                                    onTap: () async {
+                                                      Navigator.pop(context);
+                                                      await OpenAppSettings
+                                                          .openAppSettings();
+                                                    },
+                                                    child: new Align(
+                                                      alignment:
+                                                          Alignment.center,
+                                                      child: ListTile(
+                                                        leading: Container(
+                                                          height:
+                                                              kToolbarHeight /
+                                                                  1.30,
+                                                          width:
+                                                              kToolbarHeight /
+                                                                  1.30,
+                                                          child: Icon(
+                                                              LineIcons
+                                                                  .language,
+                                                              color:
+                                                                  Colors.black),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: Colors
+                                                                .transparent,
+                                                            // borderRadius: BorderRadius.circular(30.0),
+                                                          ),
+                                                        ),
+                                                        title: Padding(
+                                                          padding:
+                                                              EdgeInsets.only(
+                                                                  left: 0),
+                                                          child: Text(
+                                                            AppLocalizations
+                                                                .instance
+                                                                .text(
+                                                                    'language'),
+                                                            style: TextStyle(
+                                                                color: Colors
+                                                                    .black,
+                                                                fontSize: 16.3,
+                                                                fontFamily:
+                                                                    'SFProDisplayMedium'),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const Divider(
+                                                    color: Color.fromRGBO(
+                                                        224, 224, 224, 1),
+                                                    height: 1,
+                                                    thickness: 0,
+                                                    indent: 20,
+                                                    endIndent: 20,
+                                                  ),
+                                                  InkWell(
+                                                    onTap: () {
+                                                      Navigator.pop(context);
+                                                      Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder: (context) =>
+                                                              SettingsForm(),
+                                                        ),
+                                                      );
+                                                    },
+                                                    child: new Align(
+                                                      alignment:
+                                                          Alignment.center,
+                                                      child: ListTile(
+                                                        leading: Container(
+                                                          height:
+                                                              kToolbarHeight /
+                                                                  1.30,
+                                                          width:
+                                                              kToolbarHeight /
+                                                                  1.30,
+                                                          child: Icon(
+                                                              LineIcons.cog,
+                                                              color:
+                                                                  Colors.black),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: Colors
+                                                                .transparent,
+                                                            // borderRadius: BorderRadius.circular(50.0),
+                                                          ),
+                                                        ),
+                                                        title: Padding(
+                                                          padding:
+                                                              EdgeInsets.only(
+                                                                  left: 0),
+                                                          child: Text(
+                                                            AppLocalizations
+                                                                .instance
+                                                                .text(
+                                                                    'advanceset'),
+                                                            style: TextStyle(
+                                                                color: Colors
+                                                                    .black,
+                                                                fontSize: 16.3,
+                                                                fontFamily:
+                                                                    'SFProDisplayMedium'),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const Divider(
+                                                    color: Color.fromRGBO(
+                                                        224, 224, 224, 1),
+                                                    height: 1,
+                                                    thickness: 0,
+                                                    indent: 20,
+                                                    endIndent: 20,
+                                                  ),
+                                                ]))
+                                      ]),
+                                  Container(height: 10),
+                                  ButtonTheme(
+                                    //minWidth:
+                                    //screenSize.width -45.8,
+                                    height: 56.0,
+                                    child: FlatButton(
+                                        // splashColor: Colors.transparent,
+                                        // highlightColor: Colors.transparent,
+                                        child: Text(
+                                          AppLocalizations.instance
+                                              .text('cancel'),
+                                          style: TextStyle(
+                                              color: Colors.black,
+                                              fontSize: 16.3,
+                                              fontFamily: 'SFProDisplayMedium'),
+                                        ),
+                                        color: Colors.white,
+                                        shape: new RoundedRectangleBorder(
+                                            borderRadius:
+                                                new BorderRadius.circular(
+                                                    10.0)),
+                                        onPressed: () {
+                                          Navigator.pop(context);
+                                        }),
+                                  ),
+                                  Container(height: 40),
+                                ],
+                              ),
+                            ),
+                          )
+                        ]);
+                      },
                     );
                   },
                 ))
-              ])
-        : Container(
-            child: IconButton(
-            icon: Icon(Feather.user_x, size: 26.0, color: Colors.black26),
-            padding: EdgeInsets.only(right: 20.0, bottom: 1.3),
-            onPressed: () {
-              this.blockuser(user.data.user.id);
-            },
-          ));
+              ]))
+        : (isBlock(user.data.user.id) == true) ||
+                (isBlocked(user.data.user.block) == true)
+            ? Container()
+            : Container(
+                child: IconButton(
+                icon: Icon(Feather.user_x, size: 26.0, color: Colors.black26),
+                padding: EdgeInsets.only(right: 20.0, bottom: 1.3),
+                onPressed: () {
+                  this.blockuser(user.data.user.id);
+                },
+              ));
   }
 
   Widget buildProfileTitle(
@@ -1102,7 +2366,7 @@ class MyTimelinePage extends State<StorytellerProfile> {
       mainAxisAlignment: MainAxisAlignment.start,
       children: <Widget>[
         Container(
-          transform: Matrix4.translationValues(-6.0, -2.0, 0.0),
+          transform: Matrix4.translationValues(-6.0, -1.5, 0.0),
           child: new Text(
             user.data.user.name,
             style: new TextStyle(
@@ -1116,7 +2380,7 @@ class MyTimelinePage extends State<StorytellerProfile> {
         ),
         user.data.user.badge == 'true'
             ? Container(
-                transform: Matrix4.translationValues(-1.7, -1.0, 0.0),
+                transform: Matrix4.translationValues(-0.3, -0.5, 0.0),
                 padding: EdgeInsets.only(top: 1.7),
                 decoration: BoxDecoration(
                     shape: BoxShape.circle, color: Colors.transparent),
@@ -1144,7 +2408,7 @@ class MyTimelinePage extends State<StorytellerProfile> {
           Container(
             color: Colors.black12,
             width: double.infinity,
-            height: 200,
+            height: 185,
             child: user.data.user.cover != null
                 ? CachedNetworkImage(
                     fit: BoxFit.cover,
@@ -1181,7 +2445,7 @@ class MyTimelinePage extends State<StorytellerProfile> {
                         : Container()),
           ),
           Container(
-            transform: Matrix4.translationValues(0.0, -39.0, 0.0),
+            transform: Matrix4.translationValues(0.0, -25.0, 0.0),
             child: Padding(
               padding: EdgeInsets.only(
                 top: 0.0,
@@ -1189,8 +2453,8 @@ class MyTimelinePage extends State<StorytellerProfile> {
               child: new Align(
                 alignment: Alignment.center,
                 child: Container(
-                  height: kToolbarHeight * 3.05,
-                  width: kToolbarHeight * 3.05,
+                  height: kToolbarHeight * 3.25,
+                  width: kToolbarHeight * 3.25,
                   child: ClipRRect(
                     borderRadius: new BorderRadius.circular(200.0),
                     child: CachedNetworkImage(
@@ -1213,7 +2477,7 @@ class MyTimelinePage extends State<StorytellerProfile> {
             height: 0.0,
           ),
           Container(
-            transform: Matrix4.translationValues(0.0, -32.0, 0.0),
+            transform: Matrix4.translationValues(0.0, -19.0, 0.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
@@ -1257,16 +2521,16 @@ class MyTimelinePage extends State<StorytellerProfile> {
                       width: 15,
                     )
                   : Container(
-                      transform: Matrix4.translationValues(0.0, -31.5, 0.0),
+                      transform: Matrix4.translationValues(0.0, -22.0, 0.0),
                       margin:
                           EdgeInsets.only(left: 30.0, right: 30.0, top: 15.0),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(15.0),
-                        color: Theme.of(context).cardColor,
+                        color: Colors.transparent,
                       ),
                       child: Padding(
                         padding: EdgeInsets.only(
-                            left: 18.0, right: 18, bottom: 18, top: 16),
+                            left: 18.0, right: 18, bottom: 0, top: 0),
                         child: new Text(
                           user.data.user.bio,
                           textAlign: TextAlign.center,
@@ -1279,49 +2543,55 @@ class MyTimelinePage extends State<StorytellerProfile> {
                     ),
             ],
           ),
-          SizedBox(
-            height: 5,
-          ),
           user.data.user.badge == 'true'
               ? new Column(children: <Widget>[
                   (user.data.user.link == null)
-                      ? Container(height: 5)
-                      : GestureDetector(
-                          onTap: () async {
-                            try {
-                              await launch('https://' + user.data.user.link);
-                            } catch (e) {
-                              print(e);
-                            }
-                          },
-                          child: Container(
-                            transform:
-                                Matrix4.translationValues(0.0, -33.0, 0.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  LineIcons.globe,
-                                  size: 20,
-                                  color: Color.fromRGBO(156, 156, 156, 1),
-                                ),
-                                InkWell(
-                                  splashColor: Colors.transparent,
-                                  highlightColor: Colors.transparent,
-                                  onTap: () async {
-                                    try {
-                                      await launch(
-                                          'https://' + user.data.user.link);
-                                    } catch (e) {
-                                      print(e);
-                                    }
-                                  },
-                                  child: user.data.user.badge == 'true'
-                                      ? new Column(
-                                          children: <Widget>[
-                                            (user.data.user.link == null)
-                                                ? Container()
-                                                : Container(
+                      ? Container(height: 28)
+                      : SizedBox(
+                          height: 5,
+                        ),
+                ])
+              : Container(height: 18),
+          user.data.user.badge == 'true'
+              ? new Column(children: <Widget>[
+                  (user.data.user.link == null)
+                      ? Container(height: 15)
+                      : Container(
+                          transform: Matrix4.translationValues(0.0, -28.0, 0.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Feather.link,
+                                size: 16.4,
+                                color: Color.fromRGBO(156, 156, 156, 1),
+                              ),
+                              InkWell(
+                                splashColor: Colors.transparent,
+                                highlightColor: Colors.transparent,
+                                onTap: () async {
+                                  try {
+                                    await launch(
+                                        'https://' + user.data.user.link);
+                                  } catch (e) {
+                                    print(e);
+                                  }
+                                },
+                                child: user.data.user.badge == 'true'
+                                    ? new Column(
+                                        children: <Widget>[
+                                          (user.data.user.link == null)
+                                              ? Container()
+                                              : GestureDetector(
+                                                  onTap: () async {
+                                                    try {
+                                                      await launch('https://' +
+                                                          user.data.user.link);
+                                                    } catch (e) {
+                                                      print(e);
+                                                    }
+                                                  },
+                                                  child: Container(
                                                     margin: EdgeInsets.only(
                                                         left: 0.0,
                                                         right: 8.0,
@@ -1339,7 +2609,8 @@ class MyTimelinePage extends State<StorytellerProfile> {
                                                           bottom: 15,
                                                           top: 4),
                                                       child: new Text(
-                                                        user.data.user.link,
+                                                        ' ' +
+                                                            user.data.user.link,
                                                         textAlign:
                                                             TextAlign.center,
                                                         style: new TextStyle(
@@ -1352,20 +2623,20 @@ class MyTimelinePage extends State<StorytellerProfile> {
                                                       ),
                                                     ),
                                                   ),
-                                          ],
-                                        )
-                                      : Container(),
-                                ),
-                              ],
-                            ),
+                                                ),
+                                        ],
+                                      )
+                                    : Container(),
+                              ),
+                            ],
                           ),
-                        )
+                        ),
                 ])
               : Container(),
           new Column(
             children: <Widget>[
               new Container(
-                transform: Matrix4.translationValues(0.0, -18.0, 0.0),
+                transform: Matrix4.translationValues(0.0, -13.0, 0.0),
                 width: screenSize.width,
                 margin: EdgeInsets.only(top: 0.0),
                 child: new Row(
@@ -1375,7 +2646,7 @@ class MyTimelinePage extends State<StorytellerProfile> {
                         border: Border(
                           right: BorderSide(
                             //                   <--- left side
-                            color: Color.fromRGBO(224, 224, 224, 1),
+                            color: Color.fromRGBO(207, 207, 207, 1),
                             width: 1.0,
                           ),
                         ),
@@ -1430,7 +2701,7 @@ class MyTimelinePage extends State<StorytellerProfile> {
                         border: Border(
                           left: BorderSide(
                             //                   <--- left side
-                            color: Color.fromRGBO(224, 224, 224, 1),
+                            color: Color.fromRGBO(207, 207, 207, 1),
                             width: 1.0,
                           ),
                         ),
@@ -1465,152 +2736,187 @@ class MyTimelinePage extends State<StorytellerProfile> {
               ),
             ],
           ),
-          new Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              (userowner == 0 || userowner == global.userId)
-                  ? Container()
-                  : Container(
-                      transform: Matrix4.translationValues(0.0, -10.0, 0.0),
-                      margin: const EdgeInsets.only(top: 15),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: <Widget>[
-                          ButtonTheme(
-                            height: kToolbarHeight / 1.4,
-                            minWidth: MediaQuery.of(context).size.width / 2.3,
-                            child: FlatButton(
-                              color: (user.data.user.follow == "true")
-                                  ? _colorforUnfollow
-                                  : _colorforFollow,
-                              shape: new RoundedRectangleBorder(
-                                  borderRadius: new BorderRadius.circular(7.5)),
-                              child: (user.data.user.follow == "true")
-                                  ? Text(
-                                      AppLocalizations.instance
-                                          .text('unfollow'),
-                                      style: new TextStyle(
-                                          fontSize: 15.0,
-                                          color: Colors.white,
-                                          fontFamily: 'SFProDisplayRegular'),
-                                    )
-                                  : Text(
-                                      AppLocalizations.instance.text('follow'),
+          (isBlock(user.data.user.id) == true) ||
+                  (isBlocked(user.data.user.block) == true)
+              ? Container(
+                  height: 50.0,
+                  width: 80,
+                  child: Center(
+                    child: Text(
+                      AppLocalizations.instance.text('userblocked'),
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontFamily: "SFProDisplayBold",
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
+              : new Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    (userowner == 0 || userowner == global.userId)
+                        ? Container()
+                        : Container(
+                            transform:
+                                Matrix4.translationValues(0.0, -6.0, 0.0),
+                            margin: const EdgeInsets.only(top: 15, bottom: 5),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: <Widget>[
+                                ButtonTheme(
+                                  height: kToolbarHeight / 1.4,
+                                  minWidth:
+                                      MediaQuery.of(context).size.width / 2.3,
+                                  child: FlatButton(
+                                    color: (user.data.user.follow == "true")
+                                        ? _colorforUnfollow
+                                        : _colorforFollow,
+                                    shape: new RoundedRectangleBorder(
+                                        borderRadius:
+                                            new BorderRadius.circular(7.5)),
+                                    child: (user.data.user.follow == "true")
+                                        ? Text(
+                                            AppLocalizations.instance
+                                                .text('unfollow'),
+                                            style: new TextStyle(
+                                                fontSize: 15.0,
+                                                color: Colors.white,
+                                                fontFamily:
+                                                    'SFProDisplayRegular'),
+                                          )
+                                        : Text(
+                                            AppLocalizations.instance
+                                                .text('follow'),
+                                            style: new TextStyle(
+                                                fontSize: 15.0,
+                                                color: Colors.white,
+                                                fontFamily:
+                                                    'SFProDisplayRegular'),
+                                          ),
+                                    onPressed: () {
+                                      setState(() {
+                                        counterbus = 0;
+                                      });
+                                      (user.data.user.follow == "true")
+                                          ? check().then(
+                                              (internet) async {
+                                                if (internet == false) {
+                                                } else {
+                                                  showDialog(
+                                                    context: context,
+                                                    builder:
+                                                        (BuildContext context) {
+                                                      return AlertDialog(
+                                                        title: new Text(
+                                                          'Are you sure?',
+                                                          style: TextStyle(
+                                                            fontFamily:
+                                                                'SFProDisplayBold',
+                                                            fontSize: 23.5,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                          ),
+                                                        ),
+                                                        content: new Text(
+                                                            "You won't be following this person anymore!"),
+                                                        shape:
+                                                            RoundedRectangleBorder(
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(
+                                                                      15.0),
+                                                        ),
+                                                        actions: <Widget>[
+                                                          new FlatButton(
+                                                            child:
+                                                                new Text("No"),
+                                                            onPressed: () {
+                                                              Navigator.pop(
+                                                                  context);
+                                                            },
+                                                          ),
+                                                          new FlatButton(
+                                                            child:
+                                                                new Text("Yes"),
+                                                            onPressed:
+                                                                () async {
+                                                              await bloc
+                                                                  .unfollowuser(
+                                                                      userowner);
+                                                              widget
+                                                                  .notifyParent();
+                                                              Navigator.pop(
+                                                                  context);
+                                                            },
+                                                          ),
+                                                        ],
+                                                      );
+                                                    },
+                                                  );
+                                                }
+                                              },
+                                            )
+                                          : check().then(
+                                              (internet) async {
+                                                if (internet == false) {
+                                                } else {
+                                                  bloc.followuser(userowner);
+                                                }
+                                              },
+                                            );
+                                      widget.notifyParent();
+                                    },
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 15.0,
+                                ),
+                                ButtonTheme(
+                                  height: kToolbarHeight / 1.4,
+                                  minWidth:
+                                      MediaQuery.of(context).size.width / 2.3,
+                                  child: FlatButton(
+                                    color: Color.fromRGBO(0, 141, 252, 1),
+                                    shape: new RoundedRectangleBorder(
+                                        borderRadius:
+                                            new BorderRadius.circular(7.5)),
+                                    child: new Text(
+                                      AppLocalizations.instance.text('message'),
                                       style: new TextStyle(
                                           fontSize: 15.0,
                                           color: Colors.white,
                                           fontFamily: 'SFProDisplayRegular'),
                                     ),
-                              onPressed: () {
-                                setState(() {
-                                  counterbus = 0;
-                                });
-                                (user.data.user.follow == "true")
-                                    ? check().then(
-                                        (internet) async {
-                                          if (internet == false) {
-                                          } else {
-                                            showDialog(
-                                              context: context,
-                                              builder: (BuildContext context) {
-                                                return AlertDialog(
-                                                  title: new Text(
-                                                    'Are you sure?',
-                                                    style: TextStyle(
-                                                      fontFamily:
-                                                          'SFProDisplayBold',
-                                                      fontSize: 23.5,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                  content: new Text(
-                                                      "You won't be following this person anymore!"),
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            15.0),
-                                                  ),
-                                                  actions: <Widget>[
-                                                    new FlatButton(
-                                                      child: new Text("No"),
-                                                      onPressed: () {
-                                                        Navigator.pop(context);
-                                                      },
-                                                    ),
-                                                    new FlatButton(
-                                                      child: new Text("Yes"),
-                                                      onPressed: () async {
-                                                        await bloc.unfollowuser(
-                                                            userowner);
-                                                        widget.notifyParent();
-                                                        Navigator.pop(context);
-                                                      },
-                                                    ),
-                                                  ],
-                                                );
-                                              },
-                                            );
-                                          }
-                                        },
-                                      )
-                                    : check().then(
-                                        (internet) async {
-                                          if (internet == false) {
-                                          } else {
-                                            bloc.followuser(userowner);
-                                          }
-                                        },
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              ConversationSendForm(userowner),
+                                        ),
                                       );
-                                widget.notifyParent();
-                              },
-                            ),
-                          ),
-                          SizedBox(
-                            width: 15.0,
-                          ),
-                          ButtonTheme(
-                            height: kToolbarHeight / 1.4,
-                            minWidth: MediaQuery.of(context).size.width / 2.3,
-                            child: FlatButton(
-                              color: Color.fromRGBO(0, 141, 252, 1),
-                              shape: new RoundedRectangleBorder(
-                                  borderRadius: new BorderRadius.circular(7.5)),
-                              child: new Text(
-                                AppLocalizations.instance.text('message'),
-                                style: new TextStyle(
-                                    fontSize: 15.0,
-                                    color: Colors.white,
-                                    fontFamily: 'SFProDisplayRegular'),
-                              ),
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        ConversationSendForm(userowner),
+                                    },
                                   ),
-                                );
-                              },
+                                ),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-            ],
-          ),
+                  ],
+                ),
           SizedBox(
-            height: 7.0,
+            height: 9.0,
           ),
           const Divider(
-            color: Color.fromRGBO(224, 224, 224, 1),
+            color: Color.fromRGBO(207, 207, 207, 1),
             height: 1,
             thickness: 0,
             indent: 20,
             endIndent: 20,
           ),
           SizedBox(
-            height: 9.0,
+            height: 12.0,
           ),
         ],
       ),

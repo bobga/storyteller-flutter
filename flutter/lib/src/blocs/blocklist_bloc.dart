@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:Storyteller/src/models/user_model.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:Storyteller/src/models/message_model.dart';
@@ -11,13 +13,19 @@ class BlockListBlock {
   final userFetcherStatus = PublishSubject<MessageModel>();
   final userFetcher = PublishSubject<UserModel>();
 
-  Observable<UserModel> get allUsers => userFetcher.stream;
-  Observable<UserModel> get userDetail => userFetcher.stream;
+  StreamView<UserModel> get allUsers => userFetcher.stream;
+  StreamView<UserModel> get userDetail => userFetcher.stream;
 
   dispose() async {
     await userFetcher.drain();
     userFetcherStatus.close();
     userFetcher.close();
+  }
+
+  fetchUser(int userid) async {
+    UserModel userModel = await repository.getUser(userid);
+    userFetcher.sink.add(userModel);
+    bloc.dispose();
   }
 
   fetchBlockedUser() async {

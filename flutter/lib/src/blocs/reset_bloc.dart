@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:rxdart/rxdart.dart';
 import 'package:Storyteller/src/models/message_model.dart';
 import 'package:Storyteller/src/resources/repository.dart';
@@ -8,7 +10,7 @@ class ResetBloc {
   final repository = Repository();
   final resetFetcher = PublishSubject<MessageModel>();
   String email;
-  Stream<MessageModel> get getMessage => resetFetcher.stream;
+  StreamView<MessageModel> get getMessage => resetFetcher.stream;
 
   resetLogin(email) async {
     try {

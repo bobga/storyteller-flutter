@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:Storyteller/src/models/story_model.dart';
 import 'package:http/http.dart' show Client;
 import 'package:Storyteller/src/constant/httpService.dart';
 import 'package:Storyteller/src/constant/utils.dart';
@@ -11,8 +12,8 @@ import 'package:Storyteller/src/models/notification_model.dart';
 import 'package:Storyteller/src/models/user_model.dart';
 
 class StoryTellerApiProvider {
-  Client client = Client();
-  final baseUrl = "${NetworkUtils.urlBase}${NetworkUtils.serverApi}";
+  static Client client = Client();
+  static var baseUrl = "${NetworkUtils.urlBase}${NetworkUtils.serverApi}";
 
   Future<ImageModel> fetchPhotoList() async {
     bool isLoggedIn = await HttpService().ensureLoggedIn();
@@ -72,9 +73,8 @@ class StoryTellerApiProvider {
     }
   }
 
-  Future<String> fetchToken() async {
+  static Future<String> fetchToken() async {
     var client = await HttpService().getClient();
-    print(client);
     return client.credentials.accessToken.toString();
   }
 
@@ -251,8 +251,6 @@ class StoryTellerApiProvider {
 
       var response =
           await client.post("${baseUrl}users/block/$userid", headers: headers);
-      print("~~~~~~~~~~~~~");
-      print(json.decode(response.body));
       if (response.statusCode == 201) {
         var result = json.decode(response.body);
 
@@ -611,6 +609,95 @@ class StoryTellerApiProvider {
         return MessageModel.fromJson(result);
       } else {
         throw Exception('Failed to load post');
+      }
+    } catch (e) {
+      print(e);
+      throw Exception(e.error);
+    }
+  }
+
+  Future<UserModel> fetchStoryUser() async {
+    bool isLoggedIn = await HttpService().ensureLoggedIn();
+    if (isLoggedIn) {
+      Map<String, String> headers = {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ' + await fetchToken(),
+      };
+      var response = await client.get("${baseUrl}stories", headers: headers);
+      if (response.statusCode == 200) {
+        return UserModel.fromJsonList(json.decode(response.body));
+      } else {
+        throw Exception('Failed to load story');
+      }
+    }
+    return null;
+  }
+
+  // Future<StoryModel> fetchStories(int userId) async {
+  //   bool isLoggedIn = await HttpService().ensureLoggedIn();
+
+  //   if (isLoggedIn) {
+  //     Map<String, String> headers = {
+  //       'Accept': 'application/json',
+  //       'Authorization': 'Bearer ' + await fetchToken(),
+  //     };
+  //     var response =
+  //         await client.post("${baseUrl}stories/$userId", headers: headers);
+
+  //     if (response.statusCode == 200) {
+  //       return StoryModel.fromJsonList(json.decode(response.body));
+  //     } else {
+  //       throw Exception('Failed to load stories');
+  //     }
+  //   }
+  //   return null;
+  // }
+
+  static Future<List<Story>> getStories(int userId) async {
+    bool isLoggedIn = await HttpService().ensureLoggedIn();
+    var res;
+    if (isLoggedIn) {
+      Map<String, String> headers = {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ' + await fetchToken(),
+      };
+      var response =
+          await client.post("${baseUrl}stories/$userId", headers: headers);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes))['data'];
+        res = data.map<Story>((it) {
+          return Story(
+            id: it['id'],
+            userId: it['user_id'],
+            path: it['path'],
+            duration: it['duration'],
+            type: it['type'],
+            createdAt: it['created_at'],
+            updatedAt: it['updated_at'],
+          );
+        }).toList();
+      } else {
+        throw Exception('Failed to load stories');
+      }
+    }
+    return res;
+  }
+
+  Future<MessageModel> destoryStory(int id) async {
+    try {
+      Map<String, String> headers = {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ' + await fetchToken(),
+      };
+
+      var response = await client.delete("${baseUrl}stories/destroy/$id",
+          headers: headers);
+      if (response.statusCode == 200) {
+        var result = json.decode(response.body);
+        return MessageModel.fromJson(result);
+      } else {
+        throw Exception('Failed to delete post');
       }
     } catch (e) {
       print(e);
