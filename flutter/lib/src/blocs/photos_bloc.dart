@@ -15,21 +15,25 @@ class PhotosBloc {
   final photoFetcherStatus = PublishSubject<MessageModel>();
   final userFetcher = PublishSubject<UserModel>();
   final storyFetcher = PublishSubject<UserModel>();
+  final savedFetcher = PublishSubject<ImageModel>();
   // final storyListFetcher = PublishSubject<StoryModel>();
 
   StreamView<ImageModel> get allPhotos => photoFetcher.stream;
   StreamView<UserModel> get allStories => storyFetcher.stream;
   StreamView<UserModel> get userDetail => userFetcher.stream;
+  StreamView<ImageModel> get allSavedPosts => savedFetcher.stream;
   // Observable<StoryModel> get allStoryList => storyListFetcher.stream;
 
   dispose() async {
     await photoFetcher.drain();
     await userFetcher.drain();
     await storyFetcher.drain();
+    await savedFetcher.drain();
     // await storyListFetcher.drain();
     userFetcher.close();
     photoFetcher.close();
     storyFetcher.close();
+    savedFetcher.close();
     photoFetcherStatus.close();
     // storyListFetcher.close();
   }
@@ -67,6 +71,21 @@ class PhotosBloc {
     } catch (e) {
       photoFetcherStatus.sink.addError(e);
     }
+  }
+
+  savePost(int postId) async {
+    MessageModel imageModel = await repository.savePost(postId);
+    photoFetcherStatus.sink.add(imageModel);
+  }
+
+  removePost(int postId) async {
+    MessageModel imageModel = await repository.removePost(postId);
+    photoFetcherStatus.sink.add(imageModel);
+  }
+
+  fetchSavedList() async {
+    ImageModel imageModel = await repository.fetchSavedList();
+    savedFetcher.sink.add(imageModel);
   }
 
   reportpost(int postID) async {

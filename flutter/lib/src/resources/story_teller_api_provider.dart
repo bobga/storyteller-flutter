@@ -395,6 +395,59 @@ class StoryTellerApiProvider {
     }
   }
 
+  Future<MessageModel> savePost(int id) async {
+    Map<String, String> headers = {
+      'Content-type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': 'Bearer ' + await fetchToken(),
+    };
+    var response =
+        await client.post('${baseUrl}posts/save/$id', headers: headers);
+    print(response.body);
+    if (response.statusCode == 201) {
+      var message = Message.set(response.reasonPhrase, true);
+      return MessageModel.fromJson(message.toMap());
+    } else {
+      throw Exception(response.statusCode);
+    }
+  }
+
+  Future<MessageModel> removePost(int id) async {
+    Map<String, String> headers = {
+      'Content-type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': 'Bearer ' + await fetchToken(),
+    };
+    var response =
+        await client.post('${baseUrl}posts/remove/$id', headers: headers);
+    if (response.statusCode == 201) {
+      var message = Message.set(response.reasonPhrase, true);
+      return MessageModel.fromJson(message.toMap());
+    } else {
+      throw Exception(response.statusCode);
+    }
+  }
+
+  Future<ImageModel> fetchSavedList() async {
+    bool isLoggedIn = await HttpService().ensureLoggedIn();
+    if (isLoggedIn) {
+      Map<String, String> headers = {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ' + await fetchToken(),
+      };
+      var response =
+          await client.post("${baseUrl}posts/savelist", headers: headers);
+      if (response.statusCode == 200) {
+        return ImageModel.fromJson(json.decode(response.body));
+      } else if (response.statusCode == 404) {
+        return null;
+      } else {
+        throw Exception('Failed to load post');
+      }
+    }
+    return null;
+  }
+
   Future<comment.CommentModel> fetchComments(toPostIdController) async {
     bool isLoggedIn = await HttpService().ensureLoggedIn();
     if (isLoggedIn) {

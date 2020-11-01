@@ -1,48 +1,45 @@
+import 'dart:async';
+
 import 'package:Storyteller/app_localizations.dart';
-import 'package:Storyteller/src/ui/stories.dart';
-import 'package:Storyteller/src/ui/video.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:timeago/timeago.dart' as timeago;
 import 'package:Storyteller/src/models/image_model.dart';
 import 'package:Storyteller/src/models/user_model.dart';
+
 import 'package:Storyteller/src/ui/profile.dart';
-import 'package:pull_to_refresh/pull_to_refresh.dart';
-import 'conversation_list.dart';
-import 'package:line_icons/line_icons.dart';
-import '../blocs/photos_bloc.dart';
-import 'package:connectivity/connectivity.dart';
-import 'dart:async';
-import 'dart:io';
-import 'package:Storyteller/src/constant/utils.dart';
-import 'package:mime/mime.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:Storyteller/src/ui/stories.dart';
+
+import 'package:Storyteller/src/ui/video.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flare_flutter/flare_controls.dart';
-import 'package:flutter_icons/flutter_icons.dart';
+import 'package:flutter/material.dart';
+import 'package:connectivity/connectivity.dart';
+
+import 'package:flutter_svg/svg.dart';
+import 'package:flutter_vibrate/flutter_vibrate.dart';
+import 'package:line_icons/line_icons.dart';
+import 'package:mime/mime.dart';
+import 'package:page_transition/page_transition.dart';
+
+import 'package:pinch_zoom_image_last/pinch_zoom_image_last.dart';
+import 'package:progress_indicators/progress_indicators.dart';
+import 'package:pull_to_refresh/pull_to_refresh.dart';
+import '../blocs/photos_bloc.dart';
+import 'comments.dart';
+
 import 'globals.dart' as global;
 import 'package:flutter_icons/flutter_icons.dart' as ico;
 import 'dart:math' as math;
-import 'package:Storyteller/src/ui/comments.dart';
-import 'package:pinch_zoom_image_last/pinch_zoom_image_last.dart';
-import 'package:flutter_vibrate/flutter_vibrate.dart';
-import 'package:progress_indicators/progress_indicators.dart';
-import 'package:page_transition/page_transition.dart';
+import 'package:timeago/timeago.dart' as timeago;
 
-class PhotoFeed extends StatefulWidget {
+class SavedPosts extends StatefulWidget {
   @override
-  State<StatefulWidget> createState() {
-    return NewsFeedState();
-  }
+  _SavedPosts createState() => new _SavedPosts();
 }
 
-class NewsFeedState extends State<PhotoFeed> {
-  StreamSubscription connectivitySubscription;
-  Timer _timer, timer;
-  final FlareControls flareControls = FlareControls();
-  bool isLiked = false;
+class _SavedPosts extends State<SavedPosts> {
   RefreshController _refreshController =
       RefreshController(initialRefresh: false);
+  final FlareControls flareControls = FlareControls();
+  Timer _timer;
 
   Future<bool> check() async {
     var connectivityResult = await (Connectivity().checkConnectivity());
@@ -72,39 +69,28 @@ class NewsFeedState extends State<PhotoFeed> {
         }
       },
     );
-
     check().then(
       (internet) {
         if (internet == false) {
         } else {
-          bloc.fetchAllPhoto();
+          bloc.fetchSavedList();
           bloc.photoFetcherStatus.listen((onData) {
-            bloc.fetchAllPhoto();
+            bloc.fetchSavedList();
           });
         }
       },
     );
+  }
 
-    const oneSec = const Duration(seconds: 1);
-    connectivitySubscription = Connectivity()
-        .onConnectivityChanged
-        .listen((ConnectivityResult result) {});
+  void refresh() {
+    bloc.fetchSavedList();
+  }
 
-    timer = Timer.periodic(
-      oneSec,
-      (timer) {
-        connectivitySubscription.resume();
-        check().then(
-          (internet) {
-            if (internet == false) {
-            } else {
-              bloc.fetchStoryList();
-              bloc.dispose();
-            }
-          },
-        );
-      },
-    );
+  void _onRefresh() async {
+    // monitor network fetch
+    await bloc.fetchSavedList();
+    // if failed,use refreshFailed()
+    _refreshController.refreshCompleted();
   }
 
   bool isBlock(int id) {
@@ -118,19 +104,11 @@ class NewsFeedState extends State<PhotoFeed> {
     return blocklist.contains(id.toString());
   }
 
-  void _onRefresh() async {
-    // monitor network fetch
-    await bloc.fetchAllPhoto();
-    // if failed,use refreshFailed()
-    _refreshController.refreshCompleted();
-  }
-
-  refresh() {}
-
-  @override
-  void dispose() {
-    bloc.dispose();
-    super.dispose();
+  checkFileType(String url) {
+    String mimeStr = lookupMimeType(url);
+    var fileType = mimeStr.split('/');
+    print(fileType[0]);
+    return fileType[0];
   }
 
   void savedShow() {
@@ -212,229 +190,11 @@ class NewsFeedState extends State<PhotoFeed> {
     });
   }
 
-  checkFileType(String url) {
-    String mimeStr = lookupMimeType(url);
-    var fileType = mimeStr.split('/');
-    print(fileType[0]);
-    return fileType[0];
-  }
-
   @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Scaffold(
-          appBar: AppBar(
-            centerTitle: false,
-            automaticallyImplyLeading: false,
-            actions: [
-              Container(
-                  child: IconButton(
-                icon: Icon(Feather.message_circle, size: 30),
-                padding: EdgeInsets.only(right: 20.0),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ConversationListForm(0),
-                    ),
-                  );
-                },
-              )),
-            ],
-            title: Text(
-              'teling',
-              style: TextStyle(
-                fontFamily: "SFProDisplayBold",
-                fontSize: 37.0,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            elevation: 0.0,
-          ),
-          body: Scaffold(
-            body: NestedScrollView(
-                headerSliverBuilder: (context, innerBoxIsScrolled) {
-                  return <Widget>[
-                    SliverAppBar(
-                      expandedHeight: 70,
-                      elevation: 0.6,
-                      centerTitle: false,
-                      automaticallyImplyLeading: false,
-                      backgroundColor: Colors.transparent,
-                      bottom: PreferredSize(
-                        preferredSize: Size(0.0, 48.0),
-                        child: Column(children: [
-                          Container(
-                            padding: const EdgeInsets.only(
-                              top: 0.0,
-                              bottom: 3.0,
-                              left: 10,
-                              right: 10,
-                            ),
-                            child: SizedBox(
-                              height: 90.0,
-                              child: StreamBuilder(
-                                stream: bloc.allStories,
-                                builder: (context,
-                                    AsyncSnapshot<UserModel> snapshot) {
-                                  if (snapshot.hasData) {
-                                    if (snapshot.data.datas.length == 0) {
-                                      return Center(
-                                        child: Text("No Stories"),
-                                      );
-                                    } else {
-                                      return ListView.builder(
-                                        scrollDirection: Axis.horizontal,
-                                        itemCount: snapshot.data.datas.length,
-                                        itemBuilder:
-                                            (BuildContext context, int index) {
-                                          return (isBlock(snapshot.data
-                                                          .datas[index].id) ==
-                                                      true) ||
-                                                  (isBlocked(snapshot
-                                                          .data
-                                                          .datas[index]
-                                                          .block) ==
-                                                      true)
-                                              ? Container()
-                                              : Row(
-                                                  children: [
-                                                    Padding(
-                                                      padding:
-                                                          const EdgeInsets.only(
-                                                              right: 10.0,
-                                                              left: 8.0),
-                                                      child: Column(
-                                                        children: [
-                                                          ClipRRect(
-                                                            borderRadius:
-                                                                new BorderRadius
-                                                                        .circular(
-                                                                    30.0),
-                                                            child:
-                                                                GestureDetector(
-                                                              child:
-                                                                  CachedNetworkImage(
-                                                                height:
-                                                                    kToolbarHeight /
-                                                                        0.9,
-                                                                width:
-                                                                    kToolbarHeight /
-                                                                        0.9,
-                                                                fit: BoxFit
-                                                                    .cover,
-                                                                placeholder:
-                                                                    (c, d) {
-                                                                  return Center(
-                                                                    child:
-                                                                        CircularProgressIndicator(
-                                                                      strokeWidth:
-                                                                          2.0,
-                                                                    ),
-                                                                  );
-                                                                },
-                                                                imageUrl: snapshot
-                                                                    .data
-                                                                    .datas[
-                                                                        index]
-                                                                    .avatar,
-                                                              ),
-                                                              onTap: () {
-                                                                Navigator.push(
-                                                                    context,
-                                                                    PageTransition(
-                                                                      duration: Duration(
-                                                                          milliseconds:
-                                                                              100),
-                                                                      type: PageTransitionType
-                                                                          .fade,
-                                                                      child: Stories(snapshot
-                                                                          .data
-                                                                          .datas[
-                                                                              index]
-                                                                          .id),
-                                                                    ));
-                                                              },
-                                                            ),
-                                                          ),
-                                                          Padding(
-                                                            padding:
-                                                                const EdgeInsets
-                                                                        .only(
-                                                                    top: 4.0),
-                                                            child: SizedBox(
-                                                              child: Text(
-                                                                snapshot
-                                                                    .data
-                                                                    .datas[
-                                                                        index]
-                                                                    .name,
-                                                                style: TextStyle(
-                                                                    fontSize:
-                                                                        13),
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ],
-                                                );
-                                        },
-                                      );
-                                    }
-                                  } else if (snapshot.hasError) {
-                                    return Center(
-                                      child: Text(snapshot.error.toString()),
-                                    );
-                                  }
-
-                                  return Center(
-                                    child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          SizedBox(height: 10),
-                                          LinearProgressIndicator(
-                                            backgroundColor: Color.fromRGBO(
-                                                255, 255, 255, 0.85),
-                                            minHeight: 2,
-                                          ),
-                                        ]),
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                          Divider(
-                            color: Color.fromRGBO(207, 207, 207, 0.60),
-                            height: 1,
-                            thickness: 0,
-                            indent: 0,
-                            endIndent: 0,
-                          ),
-                        ]),
-                      ),
-                      floating: false,
-                      pinned: false,
-                    ),
-                  ];
-                },
-                body: buildList()),
-          ),
-        ),
-        Container(
-          height: MediaQuery.of(context).padding.top,
-          decoration: BoxDecoration(
-            color: Theme.of(context).canvasColor,
-          ),
-        ),
-      ],
-    );
+  void dispose() {
+    bloc.dispose();
+    super.dispose();
   }
-
-  swipeDownRefresh() {}
 
   Widget buildList() {
     final screenSize = MediaQuery.of(context).size;
@@ -442,7 +202,7 @@ class NewsFeedState extends State<PhotoFeed> {
     print("mlangCode = $mlangCode");
 
     return StreamBuilder(
-      stream: bloc.allPhotos,
+      stream: bloc.allSavedPosts,
       builder: (context, AsyncSnapshot<ImageModel> snapshot) {
         if (snapshot.hasData) {
           if (snapshot.data.datas.length == 0) {
@@ -1142,13 +902,39 @@ class NewsFeedState extends State<PhotoFeed> {
       },
     );
   }
-}
 
-String getBannerAdUnitId() {
-  if (Platform.isIOS) {
-    return NetworkUtils.BannerAdUnitIdAndroid;
-  } else if (Platform.isAndroid) {
-    return NetworkUtils.BannerAdUnitIdIOS;
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Scaffold(
+          appBar: AppBar(
+            leading: Container(
+              transform: Matrix4.translationValues(5.0, 0.0, 0.0),
+              padding: EdgeInsets.only(left: 10.0, bottom: 0),
+              child: BackButton(),
+            ),
+            elevation: 0.6,
+            title: Text(
+              AppLocalizations.instance.text('savedpost'),
+              style: TextStyle(
+                fontFamily: "SFProDisplayBold",
+                fontSize: 23.5,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          body: Scaffold(
+            body: buildList(),
+          ),
+        ),
+        Container(
+          height: MediaQuery.of(context).padding.top,
+          decoration: BoxDecoration(
+            color: Theme.of(context).canvasColor,
+          ),
+        ),
+      ],
+    );
   }
-  return null;
 }

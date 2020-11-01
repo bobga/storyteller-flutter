@@ -49,4 +49,14 @@ class SearchMainBloc {
     MessageModel imageModel = await repository.report(postID);
     photoFetcherStatusSearch.sink.add(imageModel);
   }
+
+  savePost(int postId) async {
+    MessageModel imageModel = await repository.savePost(postId);
+    photoFetcherStatusSearch.sink.add(imageModel);
+  }
+
+  removePost(int postId) async {
+    MessageModel imageModel = await repository.removePost(postId);
+    photoFetcherStatusSearch.sink.add(imageModel);
+  }
 }

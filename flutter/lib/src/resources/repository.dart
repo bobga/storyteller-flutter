@@ -84,6 +84,13 @@ class Repository {
   Future<MessageModel> saveImage(Data image) =>
       storyTellerApiProvider.saveImage(image);
 
+  Future<MessageModel> savePost(int id) => storyTellerApiProvider.savePost(id);
+  Future<MessageModel> removePost(int id) =>
+      storyTellerApiProvider.removePost(id);
+
+  Future<ImageModel> fetchSavedList() =>
+      storyTellerApiProvider.fetchSavedList();
+
   Future<comment.CommentModel> fetchComment(toPostIdController) =>
       storyTellerApiProvider.fetchComments(toPostIdController);
 

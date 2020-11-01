@@ -23,6 +23,7 @@ class Data {
   String description;
   int likes;
   String like;
+  String saved;
   CommentModel from;
   int likecount;
   String createdat;
@@ -37,6 +38,7 @@ class Data {
     likes = parsedJson['likes'];
     user = UserModel.fromJson(parsedJson['user']);
     like = parsedJson['like'];
+    saved = parsedJson['saved'];
     likecount = parsedJson['like_count'];
     createdat = parsedJson['created_at'];
     updatedat = parsedJson['updated_at'];

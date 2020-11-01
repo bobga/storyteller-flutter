@@ -6,6 +6,7 @@ import 'package:Storyteller/src/constant/httpService.dart';
 import 'package:Storyteller/src/constant/utils.dart';
 import 'package:Storyteller/src/ui/blocked%20users.dart';
 import 'package:Storyteller/src/ui/edit_profile.dart';
+import 'package:Storyteller/src/ui/saved%20posts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:Storyteller/src/ui/edit_cover.dart';
@@ -1373,14 +1374,14 @@ class MyTimelinePage extends State<StorytellerProfile> {
                         video1.then((file) async {
                           setState(() {
                             _media = file;
-                            _controller = VideoPlayerController.file(_media)                          
-                            ..initialize().then(
-                              (_) {
-                                setState(() {});
-                                _duration = _controller.value.duration;
-                                sendUploadFile();
-                              },
-                            );
+                            _controller = VideoPlayerController.file(_media)
+                              ..initialize().then(
+                                (_) {
+                                  setState(() {});
+                                  _duration = _controller.value.duration;
+                                  sendUploadFile();
+                                },
+                              );
                           });
                           Navigator.pop(context);
                         });
@@ -1403,13 +1404,13 @@ class MyTimelinePage extends State<StorytellerProfile> {
                           setState(() {
                             _media = file;
                             _controller = VideoPlayerController.file(_media)
-                            ..initialize().then(
-                              (_) {
-                                setState(() {});
-                                _duration = _controller.value.duration;
-                                sendUploadFile();
-                              },
-                            );
+                              ..initialize().then(
+                                (_) {
+                                  setState(() {});
+                                  _duration = _controller.value.duration;
+                                  sendUploadFile();
+                                },
+                              );
                           });
                           Navigator.pop(context);
                         });
@@ -1634,7 +1635,7 @@ class MyTimelinePage extends State<StorytellerProfile> {
                                                         context,
                                                         MaterialPageRoute(
                                                           builder: (context) =>
-                                                              BlockedUsers(),
+                                                              SavedPosts(),
                                                         ),
                                                       );
                                                     },
