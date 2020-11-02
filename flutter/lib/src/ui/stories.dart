@@ -1,40 +1,55 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:Storyteller/src/models/story_model.dart';
 import 'package:story_view/story_view.dart';
 import '../resources/story_teller_api_provider.dart';
 import '../blocs/photos_bloc.dart';
-
+import 'package:flutter_icons/flutter_icons.dart';
+import 'package:Storyteller/app_localizations.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter/services.dart';
 import 'globals.dart' as global;
+import 'package:timeago/timeago.dart' as timeago;
 
 class Stories extends StatelessWidget {
   final int toUserIdController;
-  Stories(this.toUserIdController, {Key key10}) : super(key: key10);
+  final String toUserNameController;
+  final String toUserAvatarController;
+  final String toUserBadgeController;
+  Stories(this.toUserIdController, this.toUserNameController,
+      this.toUserAvatarController, this.toUserBadgeController,
+      {Key key10})
+      : super(key: key10);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: FutureBuilder(
-        builder: (context, snapshot) {
-          if (snapshot.hasData) {
-            return StoryViewDelegate(
-              stories: snapshot.data,
-              userId: toUserIdController,
-            );
-          }
-          if (snapshot.hasError) {
-            return Text(snapshot.error.toString());
-          }
+      body: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.light,
+        child: FutureBuilder(
+          builder: (context, snapshot) {
+            if (snapshot.hasData) {
+              return StoryViewDelegate(
+                stories: snapshot.data,
+                userId: toUserIdController,
+                userAvatar: toUserAvatarController,
+                userName: toUserNameController,
+                userBadge: toUserBadgeController,
+              );
+            }
+            if (snapshot.hasError) {
+              return Text(snapshot.error.toString());
+            }
 
-          return Center(
-            child: CircularProgressIndicator(
-              strokeWidth: 2.0,
-              valueColor: new AlwaysStoppedAnimation<Color>(Colors.white),
-            ),
-          );
-        },
-        future: StoryTellerApiProvider.getStories(toUserIdController),
+            return Center(
+              child: CircularProgressIndicator(
+                strokeWidth: 2.0,
+                valueColor: new AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            );
+          },
+          future: StoryTellerApiProvider.getStories(toUserIdController),
+        ),
       ),
     );
   }
@@ -58,7 +73,15 @@ Duration parseDuration(String s) {
 class StoryViewDelegate extends StatefulWidget {
   final List<Story> stories;
   final int userId;
-  StoryViewDelegate({this.stories, this.userId});
+  final String userName;
+  final String userAvatar;
+  final String userBadge;
+  StoryViewDelegate(
+      {this.stories,
+      this.userId,
+      this.userName,
+      this.userAvatar,
+      this.userBadge});
   @override
   _StoryViewDelegateState createState() => _StoryViewDelegateState();
 }
@@ -68,10 +91,12 @@ class _StoryViewDelegateState extends State<StoryViewDelegate> {
   List<StoryItem> storyItems = [];
   int _id;
   int pos;
+  String when;
   bool user = false;
   @override
   void initState() {
     super.initState();
+    when = widget.stories[0].createdAt;
 
     bloc.fetchUser(0);
     bloc.userDetail.listen(
@@ -90,6 +115,7 @@ class _StoryViewDelegateState extends State<StoryViewDelegate> {
           StoryItem.pageVideo(
             story.path,
             controller: controller,
+            imageFit: BoxFit.cover,
             duration: parseDuration(story.duration),
           ),
         );
@@ -99,6 +125,7 @@ class _StoryViewDelegateState extends State<StoryViewDelegate> {
         storyItems.add(
           StoryItem.pageImage(
             url: story.path,
+            imageFit: BoxFit.cover,
             controller: controller,
             duration: parseDuration(story.duration),
           ),
@@ -115,6 +142,8 @@ class _StoryViewDelegateState extends State<StoryViewDelegate> {
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    double statusBarHeight = MediaQuery.of(context).padding.top;
     return Stack(
       children: [
         StoryView(
@@ -123,9 +152,10 @@ class _StoryViewDelegateState extends State<StoryViewDelegate> {
           onStoryShow: (storyItem) {
             pos = storyItems.indexOf(storyItem);
             _id = widget.stories[pos].id;
-
-            if(pos > 0){
-              setState((){});
+            if (pos > 0) {
+              setState(() {
+                when = widget.stories[pos].createdAt;
+              });
             }
           },
           onComplete: () {
@@ -151,11 +181,13 @@ class _StoryViewDelegateState extends State<StoryViewDelegate> {
                         bloc.destoryStory(_id).then((value) {
                           storyItems.removeAt(pos);
                           if (storyItems.length == 0) {
-                            Navigator.pop(context);
+                            // Navigator.pop(context);
                           }
                         });
                         Scaffold.of(context).showSnackBar(
                           SnackBar(
+                            margin: EdgeInsets.only(
+                                bottom: 38, left: 30, right: 30),
                             elevation: 0,
                             backgroundColor: Colors.white,
                             content: Text(
@@ -165,7 +197,7 @@ class _StoryViewDelegateState extends State<StoryViewDelegate> {
                                   color: Colors.black,
                                   fontWeight: FontWeight.normal),
                             ),
-                            duration: Duration(seconds: 5),
+                            duration: Duration(seconds: 3),
                             behavior: SnackBarBehavior.floating,
                           ),
                         );
@@ -176,14 +208,85 @@ class _StoryViewDelegateState extends State<StoryViewDelegate> {
               )
             : Container(),
         Positioned(
-          bottom: 20,
-          left: 20,
+          bottom: 14,
+          left: 13,
           child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(30),
-                color: Colors.black.withOpacity(0.2),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(30),
+              color: Colors.black45.withOpacity(0.2),
+            ),
+            child: IconButton(
+                icon: Icon(
+                  Icons.close,
+                  color: Colors.white,
+                ),
+                onPressed: () {
+                  Navigator.pop(context);
+                }),
+          ),
+        ),
+        Container(
+          padding: EdgeInsets.only(
+            top: 48,
+            left: 16,
+            right: 16,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              CircleAvatar(
+                radius: 24,
+                backgroundImage: NetworkImage(widget.userAvatar),
               ),
-              child: Container()),
+              SizedBox(
+                width: 15,
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          widget.userName,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        SizedBox(
+                          width: 5,
+                        ),
+                        widget.userBadge == "true"
+                            ? Container(
+                                decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.transparent),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(0),
+                                  child: SvgPicture.network(
+                                      "https://teling.app/wp-content/uploads/2020/09/check.svg",
+                                      width: 14,
+                                      height: 14),
+                                ),
+                              )
+                            : Container(),
+                      ],
+                    ),
+                    Text(
+                      timeago.format(DateTime.parse(when).toLocal(),
+                          locale: AppLocalizations.instance.mlangCode),
+                      style: TextStyle(
+                        color: Colors.white38,
+                      ),
+                    )
+                  ],
+                ),
+              ),
+            ],
+          ),
         )
       ],
     );

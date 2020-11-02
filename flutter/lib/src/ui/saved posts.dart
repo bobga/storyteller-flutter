@@ -793,8 +793,12 @@ class _SavedPosts extends State<SavedPosts> {
                                               ),
                                               Center(
                                                 child: Text(
-                                                  AppLocalizations.instance
-                                                      .text('comments'),
+                                                  snapshot.data.data[index]
+                                                          .commentcount
+                                                          .toString() +
+                                                      ' ' +
+                                                      AppLocalizations.instance
+                                                          .text('comments'),
                                                   textAlign: TextAlign.start,
                                                   style: TextStyle(
                                                     fontFamily:
@@ -832,7 +836,8 @@ class _SavedPosts extends State<SavedPosts> {
                                                     ),
                                                     Text(
                                                       AppLocalizations.instance
-                                                          .text('save'),
+                                                              .text('save') +
+                                                          "   ",
                                                       textAlign:
                                                           TextAlign.start,
                                                       style: TextStyle(
@@ -854,8 +859,7 @@ class _SavedPosts extends State<SavedPosts> {
                                                       width: 5.0,
                                                     ),
                                                     Text(
-                                                      AppLocalizations.instance
-                                                          .text('remove'),
+                                                      'Saved',
                                                       textAlign:
                                                           TextAlign.start,
                                                       style: TextStyle(

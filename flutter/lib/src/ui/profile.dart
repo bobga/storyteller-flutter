@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
+
 import 'package:Storyteller/app_localizations.dart';
 import 'package:Storyteller/src/constant/httpService.dart';
 import 'package:Storyteller/src/constant/utils.dart';
@@ -16,30 +17,31 @@ import 'package:flutter/material.dart';
 import 'package:Storyteller/src/models/user_model.dart';
 import 'package:Storyteller/src/ui/conversation_send.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:timeago/timeago.dart' as timeago;
 import 'package:video_player/video_player.dart';
 import 'bottomNavigation.dart';
 import 'settings.dart';
 import 'package:line_icons/line_icons.dart';
 import '../blocs/profile_bloc.dart';
-import 'globals.dart' as global;
 import 'package:connectivity/connectivity.dart';
 import 'dart:async';
 import 'package:mime/mime.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:flutter_icons/flutter_icons.dart' as ico;
-import 'dart:math' as math;
 import 'package:Storyteller/src/ui/comments.dart';
 import 'package:flutter_icons/flutter_icons.dart';
-import 'package:lottie/lottie.dart';
 import 'package:open_app_settings/open_app_settings.dart';
-import 'package:http/http.dart' as http;
-import 'package:path/path.dart' as path;
 import 'package:async/async.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:pinch_zoom_image_last/pinch_zoom_image_last.dart';
 import 'package:flutter_vibrate/flutter_vibrate.dart';
 import 'package:progress_indicators/progress_indicators.dart';
+
+
+import '../blocs/photos_bloc.dart' as photo;
+import 'package:timeago/timeago.dart' as timeago;
+import 'package:http/http.dart' as http;
+import 'package:path/path.dart' as path;
+import 'globals.dart' as global;
+import 'dart:math' as math;
 
 class StorytellerProfile extends StatefulWidget {
   final int idController;
@@ -1106,34 +1108,78 @@ class MyTimelinePage extends State<StorytellerProfile> {
                                                       ]),
                                                 ),
                                               ),
-                                              Container(
-                                                child: Row(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .center,
-                                                    children: [
-                                                      Icon(
-                                                          Icons.bookmark_border,
-                                                          color: Colors.black45,
-                                                          size: 22.6),
-                                                      SizedBox(
-                                                        width: 5.0,
-                                                      ),
-                                                      Text(
-                                                        AppLocalizations
-                                                            .instance
-                                                            .text('save'),
-                                                        textAlign:
-                                                            TextAlign.start,
-                                                        style: TextStyle(
-                                                          fontFamily:
-                                                              "SFProDisplayMedium",
-                                                          fontSize: 14.5,
-                                                          color: Colors.black45,
-                                                        ),
-                                                      )
-                                                    ]),
+                                              GestureDetector(
+                                              onTap: () {
+                                                (snapshot.data.data[index]
+                                                            .saved ==
+                                                        "true")
+                                                    ? photo.bloc.removePost(snapshot
+                                                        .data.data[index].id)
+                                                    : photo.bloc.savePost(snapshot
+                                                        .data.data[index].id);
+                                              },
+                                              child: Container(
+                                                child: snapshot.data.data[index]
+                                                            .saved !=
+                                                        "true"
+                                                    ? Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .center,
+                                                        children: [
+                                                            Icon(
+                                                                Icons
+                                                                    .bookmark_border,
+                                                                color: Colors
+                                                                    .black45,
+                                                                size: 22.6),
+                                                            SizedBox(
+                                                              width: 5.0,
+                                                            ),
+                                                            Text(
+                                                              AppLocalizations
+                                                                  .instance
+                                                                  .text('save') + "   ",
+                                                              textAlign:
+                                                                  TextAlign
+                                                                      .start,
+                                                              style: TextStyle(
+                                                                fontFamily:
+                                                                    "SFProDisplayMedium",
+                                                                fontSize: 14.5,
+                                                                color: Colors
+                                                                    .black45,
+                                                              ),
+                                                            ),
+                                                          ])
+                                                    : Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .center,
+                                                        children: [
+                                                            Icon(Icons.bookmark,
+                                                                color: Colors
+                                                                    .black,
+                                                                size: 22.6),
+                                                            SizedBox(
+                                                              width: 5.0,
+                                                            ),
+                                                            Text(
+                                                              'Saved',
+                                                              textAlign:
+                                                                  TextAlign
+                                                                      .start,
+                                                              style: TextStyle(
+                                                                fontFamily:
+                                                                    "SFProDisplayMedium",
+                                                                fontSize: 14.5,
+                                                                color: Colors
+                                                                    .black45,
+                                                              ),
+                                                            ),
+                                                          ]),
                                               ),
+                                            ),
                                             ],
                                           ),
                                         ),
@@ -1205,104 +1251,210 @@ class MyTimelinePage extends State<StorytellerProfile> {
   }
 
   void checkMediaType() {
+    final screenSize = MediaQuery.of(context).size;
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: new Text(
-            AppLocalizations.instance.text('fromwhere'),
-            style: TextStyle(
-              fontFamily: 'SFProDisplayBold',
-              fontSize: 23.5,
-              fontWeight: FontWeight.bold,
-            ),
+          title: Center(
+            child: Column(children: <Widget>[
+              Image.network(
+                'https://images.emojiterra.com/mozilla/512px/1f389.png',
+                width: 80,
+                height: 80,
+              ),
+              SizedBox(height: 15),
+              Text(
+                'Upload Story',
+                style: TextStyle(
+                  fontFamily: 'SFProDisplayBold',
+                  fontSize: 20.5,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ]),
           ),
-          content: new Text(
-            AppLocalizations.instance.text('selectfile'),
-            textAlign: TextAlign.left,
+          content: Container(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  'Select the file type to upload, then you \ncan choose from the gallery or camera.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 15.5,
+                    fontFamily: 'SFProDisplayMedium',
+                    color: Colors.black54,
+                  ),
+                ),
+                SizedBox(height: 30),
+                const Divider(
+                  color: Color.fromRGBO(224, 224, 224, 1),
+                  height: 1,
+                  thickness: 0,
+                  indent: 0,
+                  endIndent: 0,
+                ),
+                ButtonTheme(
+                  minWidth: screenSize.width ,
+                  height: 45.0,
+                  child: FlatButton(
+                    //splashColor: Colors.transparent,
+                    //highlightColor: Colors.transparent,
+                    child: Text(
+                      AppLocalizations.instance.text('image'),
+                      style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 16.3,
+                          fontFamily: 'SFProDisplayMedium'),
+                    ),
+                    color: Colors.transparent,
+                    shape: new RoundedRectangleBorder(
+                        borderRadius: BorderRadius.only(
+                            topRight: Radius.circular(0.0),
+                            topLeft: Radius.circular(0.0))),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      isVideo = false;
+                      _getImage();
+                    },
+                  ),
+                ),
+                const Divider(
+                  color: Color.fromRGBO(224, 224, 224, 1),
+                  height: 1,
+                  thickness: 0,
+                  indent: 0,
+                  endIndent: 0,
+                ),
+                ButtonTheme(
+                  minWidth: screenSize.width,
+                  height: 45.0,
+                  child: FlatButton(
+                    //splashColor: Colors.transparent,
+                    //highlightColor: Colors.transparent,
+                    child: Text(
+                      AppLocalizations.instance.text('video'),
+                      style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 16.3,
+                          fontFamily: 'SFProDisplayMedium'),
+                    ),
+                    color: Colors.transparent,
+                    shape: new RoundedRectangleBorder(
+                        borderRadius: BorderRadius.only(
+                            topRight: Radius.circular(0.0),
+                            topLeft: Radius.circular(0.0))),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      isVideo = true;
+                      _getVideo();
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15.0),
           ),
-          actions: <Widget>[
-            new FlatButton(
-              onPressed: () {
-                Navigator.pop(context);
-                isVideo = false;
-                _getImage();
-              },
-              child: new Text(
-                AppLocalizations.instance.text('image'),
-              ),
-            ),
-            new FlatButton(
-              onPressed: () {
-                Navigator.pop(context);
-                isVideo = true;
-                _getVideo();
-              },
-              child: new Text(
-                AppLocalizations.instance.text('video'),
-              ),
-            )
-          ],
         );
       },
     );
   }
 
   Future _getImage() async {
+    final screenSize = MediaQuery.of(context).size;
     try {
       showDialog(
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: new Text(
-              AppLocalizations.instance.text('image'),
-              style: TextStyle(
-                fontFamily: 'SFProDisplayBold',
-                fontSize: 23.5,
-                fontWeight: FontWeight.bold,
+            title: Center(
+              child: Text(
+                'Image Story',
+                style: TextStyle(
+                  fontFamily: 'SFProDisplayBold',
+                  fontSize: 20.5,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-            content: new Text(
-              AppLocalizations.instance.text('camerachoose'),
-              style: TextStyle(
-                fontFamily: 'SFProDisplayRegular',
-              ),
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(15.0),
-            ),
-            actions: <Widget>[
-              Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: <Widget>[
-                    new FlatButton(
-                      child: new Text(
+            content: Container(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Text(
+                    'You can upload a photo or take a new one.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 15.5,
+                      fontFamily: 'SFProDisplayMedium',
+                      color: Colors.black54,
+                    ),
+                  ),
+                  SizedBox(height: 30),
+                  const Divider(
+                    color: Color.fromRGBO(224, 224, 224, 1),
+                    height: 1,
+                    thickness: 0,
+                    indent: 0,
+                    endIndent: 0,
+                  ),
+                  ButtonTheme(
+                    minWidth: screenSize.width - 45.8,
+                    height: 45.0,
+                    child: FlatButton(
+                      //splashColor: Colors.transparent,
+                      //highlightColor: Colors.transparent,
+                      child: Text(
                         AppLocalizations.instance.text('gallery'),
                         style: TextStyle(
-                          fontFamily: 'SFProDisplayMedium',
-                          color: Color.fromRGBO(0, 141, 252, 1),
-                        ),
+                            color: Colors.black,
+                            fontSize: 16.3,
+                            fontFamily: 'SFProDisplayMedium'),
                       ),
+                      color: Colors.transparent,
+                      shape: new RoundedRectangleBorder(
+                          borderRadius: BorderRadius.only(
+                              topRight: Radius.circular(10.0),
+                              topLeft: Radius.circular(10.0))),
                       onPressed: () async {
                         PickedFile pickedFile = await ImagePicker().getImage(
                           source: ImageSource.gallery,
                           maxWidth: 1800,
                           maxHeight: 1800,
                         );
+
                         _cropImage(pickedFile.path);
                       },
                     ),
-                    new FlatButton(
-                      child: new Text(
+                  ),
+                  const Divider(
+                    color: Color.fromRGBO(224, 224, 224, 1),
+                    height: 1,
+                    thickness: 0,
+                    indent: 0,
+                    endIndent: 0,
+                  ),
+                  ButtonTheme(
+                    minWidth: screenSize.width - 45.8,
+                    height: 45.0,
+                    child: FlatButton(
+                      //splashColor: Colors.transparent,
+                      //highlightColor: Colors.transparent,
+                      child: Text(
                         AppLocalizations.instance.text('camera'),
                         style: TextStyle(
-                          fontFamily: 'SFProDisplayMedium',
-                          color: Color.fromRGBO(0, 141, 252, 1),
-                        ),
+                            color: Colors.black,
+                            fontSize: 16.3,
+                            fontFamily: 'SFProDisplayMedium'),
                       ),
+                      color: Colors.transparent,
+                      shape: new RoundedRectangleBorder(
+                          borderRadius: BorderRadius.only(
+                              topRight: Radius.circular(10.0),
+                              topLeft: Radius.circular(10.0))),
                       onPressed: () async {
                         PickedFile pickedFile = await ImagePicker().getImage(
                           source: ImageSource.camera,
@@ -1312,20 +1464,13 @@ class MyTimelinePage extends State<StorytellerProfile> {
                         _cropImage(pickedFile.path);
                       },
                     ),
-                    new FlatButton(
-                      child: new Text(
-                        AppLocalizations.instance.text('cancel'),
-                        style: TextStyle(
-                          fontFamily: 'SFProDisplayMedium',
-                          color: Color.fromRGBO(0, 141, 252, 1),
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                    ),
-                  ]),
-            ],
+                  ),
+                ],
+              ),
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15.0),
+            ),
           );
         },
       );
@@ -1333,40 +1478,61 @@ class MyTimelinePage extends State<StorytellerProfile> {
   }
 
   Future _getVideo() async {
+    final screenSize = MediaQuery.of(context).size;
     try {
       showDialog(
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: new Text(
-              AppLocalizations.instance.text('video'),
-              style: TextStyle(
-                fontFamily: 'SFProDisplayBold',
-                fontSize: 23.5,
-                fontWeight: FontWeight.bold,
+            title: Center(
+              child: Text(
+                'Video Story',
+                style: TextStyle(
+                  fontFamily: 'SFProDisplayBold',
+                  fontSize: 20.5,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-            content: new Text(
-              "Now open the gallery, choose your video and upload it to teling.",
-              style: TextStyle(
-                fontFamily: 'SFProDisplayRegular',
-              ),
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(15.0),
-            ),
-            actions: <Widget>[
-              Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: <Widget>[
-                    new FlatButton(
-                      child: new Text(
+            content: Container(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Text(
+                    'You can upload a video or take a new one.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 15.5,
+                      fontFamily: 'SFProDisplayMedium',
+                      color: Colors.black54,
+                    ),
+                  ),
+                  SizedBox(height: 30),
+                  const Divider(
+                    color: Color.fromRGBO(224, 224, 224, 1),
+                    height: 1,
+                    thickness: 0,
+                    indent: 0,
+                    endIndent: 0,
+                  ),
+                  ButtonTheme(
+                    minWidth: screenSize.width - 45.8,
+                    height: 45.0,
+                    child: FlatButton(
+                      //splashColor: Colors.transparent,
+                      //highlightColor: Colors.transparent,
+                      child: Text(
                         AppLocalizations.instance.text('gallery'),
                         style: TextStyle(
-                          fontFamily: 'SFProDisplayMedium',
-                          color: Color.fromRGBO(0, 141, 252, 1),
-                        ),
+                            color: Colors.black,
+                            fontSize: 16.3,
+                            fontFamily: 'SFProDisplayMedium'),
                       ),
+                      color: Colors.transparent,
+                      shape: new RoundedRectangleBorder(
+                          borderRadius: BorderRadius.only(
+                              topRight: Radius.circular(10.0),
+                              topLeft: Radius.circular(10.0))),
                       onPressed: () async {
                         Future<File> video1 =
                             ImagePicker.pickVideo(source: ImageSource.gallery);
@@ -1387,14 +1553,32 @@ class MyTimelinePage extends State<StorytellerProfile> {
                         });
                       },
                     ),
-                    FlatButton(
-                      child: new Text(
-                        "Camera",
+                  ),
+                  const Divider(
+                    color: Color.fromRGBO(224, 224, 224, 1),
+                    height: 1,
+                    thickness: 0,
+                    indent: 0,
+                    endIndent: 0,
+                  ),
+                  ButtonTheme(
+                    minWidth: screenSize.width - 45.8,
+                    height: 45.0,
+                    child: FlatButton(
+                      //splashColor: Colors.transparent,
+                      //highlightColor: Colors.transparent,
+                      child: Text(
+                        AppLocalizations.instance.text('camera'),
                         style: TextStyle(
-                          fontFamily: 'SFProDisplayMedium',
-                          color: Color.fromRGBO(0, 141, 252, 1),
-                        ),
+                            color: Colors.black,
+                            fontSize: 16.3,
+                            fontFamily: 'SFProDisplayMedium'),
                       ),
+                      color: Colors.transparent,
+                      shape: new RoundedRectangleBorder(
+                          borderRadius: BorderRadius.only(
+                              topRight: Radius.circular(10.0),
+                              topLeft: Radius.circular(10.0))),
                       onPressed: () async {
                         Future<File> video2 = ImagePicker.pickVideo(
                             source: ImageSource.camera,
@@ -1416,20 +1600,13 @@ class MyTimelinePage extends State<StorytellerProfile> {
                         });
                       },
                     ),
-                    new FlatButton(
-                      child: new Text(
-                        AppLocalizations.instance.text('cancel'),
-                        style: TextStyle(
-                          fontFamily: 'SFProDisplayMedium',
-                          color: Color.fromRGBO(0, 141, 252, 1),
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                    ),
-                  ]),
-            ],
+                  ),
+                ],
+              ),
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15.0),
+            ),
           );
         },
       );
@@ -1450,17 +1627,13 @@ class MyTimelinePage extends State<StorytellerProfile> {
           )
         : Container(
             child: IconButton(
-            icon: Icon(LineIcons.plus, size: 31.0),
-            padding: EdgeInsets.only(left: 15.0, bottom: 0),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => EditCover(),
-                ),
-              );
-            },
-          ));
+              icon: Icon(LineIcons.plus, size: 31.0),
+              padding: EdgeInsets.only(left: 15.0, bottom: 0),
+              onPressed: () {
+                checkMediaType();
+              },
+            ),
+          );
   }
 
   Widget buildProfileSettings(

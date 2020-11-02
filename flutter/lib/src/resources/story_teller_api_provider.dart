@@ -614,6 +614,27 @@ class StoryTellerApiProvider {
     return null;
   }
 
+  Future<MessageModel> deleteConversation(int toUserId) async {
+    try {
+      Map<String, String> headers = {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ' + await fetchToken(),
+      };
+
+      var response = await client.delete("${baseUrl}conversations/$toUserId",
+          headers: headers);
+      if (response.statusCode == 201) {
+        var result = json.decode(response.body);
+        return MessageModel.fromJson(result);
+      } else {
+        throw Exception('Failed to load post');
+      }
+    } catch (e) {
+      print(e);
+      throw Exception(e.error);
+    }
+  }
+
   Future<MessageModel> readNotifications() async {
     Map<String, String> headers = {
       'Content-type': 'application/json',

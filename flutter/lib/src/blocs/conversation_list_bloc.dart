@@ -32,4 +32,10 @@ class ConversationListBloc {
         await repository.fetchUserConversationList(toUsernameController);
     conversationFetcher.sink.add(conversationModel);
   }
+
+  destroyConversation(int toUserId) async {
+    MessageModel conversationModel =
+        await repository.deleteConversation(toUserId);
+    conversationFetcherStatus.sink.add(conversationModel);
+  }
 }

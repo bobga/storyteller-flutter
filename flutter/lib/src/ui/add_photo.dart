@@ -18,6 +18,8 @@ import 'package:line_icons/line_icons.dart';
 import 'package:async/async.dart';
 import 'package:path/path.dart' as path;
 import 'package:http/http.dart' as http;
+import 'package:camera/camera.dart';
+import 'package:gallery_saver/gallery_saver.dart';
 
 class PhotoForm extends StatefulWidget {
   @override
@@ -31,6 +33,7 @@ class StoryTellerAddPhoto extends State<PhotoForm> {
   bool isVideo = false;
   bool isLoading = false;
   VideoPlayerController _controller;
+  CameraController _controlleri;
 
   TextEditingController descriptionController = TextEditingController();
   final GlobalKey<FormState> _formKey3 = GlobalKey<FormState>();
@@ -63,6 +66,7 @@ class StoryTellerAddPhoto extends State<PhotoForm> {
   @override
   void dispose() {
     bloc.dispose();
+    _controlleri.dispose();
     super.dispose();
   }
 
@@ -73,91 +77,93 @@ class StoryTellerAddPhoto extends State<PhotoForm> {
       key: _formKey3,
       child: Scaffold(
         appBar: AppBar(
-          automaticallyImplyLeading: false,
-          elevation: 0.6,
-                        backgroundColor: Colors.white,
-                        centerTitle: false,
-                        title: Text(
-                          'New post',
-                          style: TextStyle(
-                            fontFamily: 'SFProDisplayBold',
-                            fontSize: 33.0,
-                          ),
-                        ),
-    actions: <Widget>[
-    Padding(
-      padding: EdgeInsets.only(right: 20.0),
-      child: GestureDetector(
-        onTap: () {},
-        child: 
-        Container(
-          margin: EdgeInsets.only(bottom: 11.0, top: 11.0),
-          child:
-        ButtonTheme(
-          splashColor: Colors.transparent,
-           highlightColor: Colors.transparent,
-                  height: kToolbarHeight / 1.10,
-                  minWidth: 60,
-                  child:
-                  FlatButton(
-                    splashColor: Colors.transparent,
-                     highlightColor: Colors.transparent,
-                      color: _media == null ? Colors.black12 : Colors.black,
-                      shape: new RoundedRectangleBorder(
-                          borderRadius: new BorderRadius.circular(10.0)),
-                      child: isLoading == false
-                          ? new Text(
-                              AppLocalizations.instance.text('publish'),
-                              style: new TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15.0,
-                                  fontFamily: 'SFProDisplayMedium'),
-                            )
-                          : CircularProgressIndicator(
-                              strokeWidth: 2.0,
-                              valueColor: new AlwaysStoppedAnimation<Color>(
-                                  Colors.white),
-                            ),
-                      onPressed: () {
-                        check().then((internet) async {
-                          if (internet == false) {
-                          } else {
-                            if (_formKey3.currentState.validate() == true) {
-                              if (_media == null) return;
-                              setState(() {
-                                isLoading = true;
-                              });
-                              
-                            }
-                          }
-                        });
-                        if (_media != null) {
-                    sendUploadFile(descriptionController.text);
-                    Scaffold.of(context).showSnackBar(
-                      SnackBar(
-                        elevation: 0,
-                        backgroundColor: Colors.black,
-                        content: Text(
-                          "Your post will be visible in a couple of seconds.",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                                fontFamily: "SFProDisplayBold",
-                                 fontSize: 13,
+            automaticallyImplyLeading: false,
+            elevation: 0.6,
+            backgroundColor: Colors.white,
+            centerTitle: false,
+            title: Text(
+              ' Post',
+              style: TextStyle(
+                fontFamily: 'SFProDisplayBold',
+                fontSize: 33.0,
+              ),
+            ),
+            actions: <Widget>[
+              Padding(
+                padding: EdgeInsets.only(right: 20.0),
+                child: GestureDetector(
+                  onTap: () {},
+                  child: Container(
+                    margin: EdgeInsets.only(bottom: 13.0, top: 13.0),
+                    child: ButtonTheme(
+                      splashColor: Colors.transparent,
+                      highlightColor: Colors.transparent,
+                      height: kToolbarHeight / 1.10,
+                      minWidth: 60,
+                      child: FlatButton(
+                          splashColor: Colors.transparent,
+                          highlightColor: Colors.transparent,
+                          color: _media == null ? Colors.black12 : Colors.blue,
+                          shape: new RoundedRectangleBorder(
+                              borderRadius: new BorderRadius.circular(6.0)),
+                          child: isLoading == false
+                              ? new Text(
+                                  AppLocalizations.instance.text('publish'),
+                                  style: new TextStyle(
+                                      color: _media == null ? Colors.white : Colors.white,
+                                      fontSize: 15.0,
+                                      fontFamily: 'SFProDisplayMedium'),
+                                )
+                              : Center(
+                                child:
+                                Container(
+                                  width: 10, 
+                                  height: 10, 
+                                  child:
+                                CircularProgressIndicator(
+                                  strokeWidth: 2.0,
+                                  valueColor: new AlwaysStoppedAnimation<Color>(
+                                      Colors.white),
+                                ),
+                                ),
                               ),
-                        ),
-                        duration: Duration(seconds: 10),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  }
-                      }),
-        ),
-        ),
-        ),
-      )
-    ]
-                      ),
-        
+                          onPressed: () {
+                            check().then((internet) async {
+                              if (internet == false) {
+                              } else {
+                                if (_formKey3.currentState.validate() == true) {
+                                  if (_media == null) return;
+                                  setState(() {
+                                    isLoading = true;
+                                  });
+                                }
+                              }
+                            });
+                            if (_media != null) {
+                              sendUploadFile(descriptionController.text);
+                              Scaffold.of(context).showSnackBar(
+                                SnackBar(
+                                  elevation: 0,
+                                  backgroundColor: Colors.black,
+                                  content: Text(
+                                    "Your post will be visible in a couple of seconds.",
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontFamily: "SFProDisplayBold",
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  duration: Duration(seconds: 10),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            }
+                          }),
+                    ),
+                  ),
+                ),
+              )
+            ]),
         body: Padding(
           padding: EdgeInsets.only(top: 0),
           child: SingleChildScrollView(
@@ -178,220 +184,251 @@ class StoryTellerAddPhoto extends State<PhotoForm> {
                         color: Colors.transparent,
                       ),
                       child: _media == null
-                          ? 
-                          Center(
-                            child:
-                           Column( 
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: <Widget>[ 
-                          Row( 
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: <Widget>[
-                          Container(
-                              margin: const EdgeInsets.only(top: 150),
-                              child: Center(
-                                child: Container(
-                                  height: kToolbarHeight * 1.80,
-                                  width: kToolbarHeight * 1.80,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.all(
-                                      Radius.circular(50.0),
-                                    ),
-                                    color: Theme.of(context).canvasColor,
-                                  ),
-                                  child: new Material(
-                                    color: Colors.black,
-                                    borderRadius: BorderRadius.all(
-                                      Radius.circular(50.0),
-                                    ),
-                                    child: InkWell(
-                                      borderRadius: BorderRadius.all(
-                                        Radius.circular(50.0),
-                                      ),
-                                      onTap: () async {
-                         PickedFile pickedFile = await ImagePicker().getImage(
-                         source: ImageSource.camera,
-                           maxWidth: 1800,
-                            maxHeight: 1800,
-                            );
-                             _cropImage(pickedFile.path);
-                        
-                      },
-                                      child: Center(
-                                        child: Icon(
-                                          Feather.camera,
-                                          size: kToolbarHeight * 0.65,
-                                          color: Colors.white,
+                          ? Center(
+                              child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: <Widget>[
+                                  Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: <Widget>[
+                                        Container(
+                                          margin:
+                                              const EdgeInsets.only(top: 150),
+                                          child: Center(
+                                            child: Container(
+                                              height: kToolbarHeight * 1.80,
+                                              width: kToolbarHeight * 1.80,
+                                              decoration: BoxDecoration(
+                                                borderRadius: BorderRadius.all(
+                                                  Radius.circular(50.0),
+                                                ),
+                                                color: Theme.of(context)
+                                                    .canvasColor,
+                                              ),
+                                              child: new Material(
+                                                color: Theme.of(context).cardColor,
+                                                borderRadius: BorderRadius.all(
+                                                  Radius.circular(50.0),
+                                                ),
+                                                child: InkWell(
+                                                  borderRadius:
+                                                      BorderRadius.all(
+                                                    Radius.circular(50.0),
+                                                  ),
+                                                  onTap: () async {
+                                                    PickedFile pickedFile =
+                                                        await ImagePicker()
+                                                            .getImage(
+                                                      source:
+                                                          ImageSource.camera,
+                                                      maxWidth: 1800,
+                                                      maxHeight: 1800,
+                                                    );
+                                                    _cropImage(pickedFile.path);
+                                                  },
+                                                  child: Center(
+                                                    child: Icon(
+                                                      Feather.camera,
+                                                      size:
+                                                          kToolbarHeight * 0.65,
+                                                      color: Colors.black,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: 25),
-                            Container(
-                              margin: const EdgeInsets.only(top: 150),
-                              child: Center(
-                                child: Container(
-                                  height: kToolbarHeight * 1.80,
-                                  width: kToolbarHeight * 1.80,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.all(
-                                      Radius.circular(50.0),
-                                    ),
-                                    color: Theme.of(context).canvasColor,
-                                  ),
-                                  child: new Material(
-                                    color: Colors.black,
-                                    borderRadius: BorderRadius.all(
-                                      Radius.circular(50.0),
-                                    ),
-                                    child: InkWell(
-                                      borderRadius: BorderRadius.all(
-                                        Radius.circular(50.0),
-                                      ),
-                                      onTap: () async {
-                                        isVideo = true;
-                        Future<File> video2 =
-                            ImagePicker.pickVideo(source: ImageSource.camera);
+                                        SizedBox(width: 25),
+                                        Container(
+                                          margin:
+                                              const EdgeInsets.only(top: 150),
+                                          child: Center(
+                                            child: Container(
+                                              height: kToolbarHeight * 1.80,
+                                              width: kToolbarHeight * 1.80,
+                                              decoration: BoxDecoration(
+                                                borderRadius: BorderRadius.all(
+                                                  Radius.circular(50.0),
+                                                ),
+                                                color: Theme.of(context)
+                                                    .canvasColor,
+                                              ),
+                                              child: new Material(
+                                                color: Theme.of(context).cardColor,
+                                                borderRadius: BorderRadius.all(
+                                                  Radius.circular(50.0),
+                                                ),
+                                                child: InkWell(
+                                                  borderRadius:
+                                                      BorderRadius.all(
+                                                    Radius.circular(50.0),
+                                                  ),
+                                                  onTap: () async {
+                                                    isVideo = true;
+                                                    Future<File> video2 =
+                                                        ImagePicker.pickVideo(
+                                                            source: ImageSource
+                                                                .camera);
 
-                        video2.then((file) async {
-                          setState(() {
-                            _media = file;
-                            _controller = VideoPlayerController.file(_media)
-                              ..initialize().then(
-                                (_) {
-                                  setState(() {});
-                                  _controller.setLooping(true);
-                                },
-                              );
-                          });
-                          
-                        });
-                      },
-                                    
-                                      child: Center(
-                                        child: Icon(
-                                          Feather.video,
-                                          color: Colors.white,
-                                          size: kToolbarHeight * 0.65,
+                                                    video2.then((file) async {
+                                                      setState(() {
+                                                        _media = file;
+                                                        _controller =
+                                                            VideoPlayerController
+                                                                .file(_media)
+                                                              ..initialize()
+                                                                  .then(
+                                                                (_) {
+                                                                  setState(
+                                                                      () {});
+                                                                  _controller
+                                                                      .setLooping(
+                                                                          true);
+                                                                },
+                                                              );
+                                                      });
+                                                    });
+                                                  },
+                                                  child: Center(
+                                                    child: Icon(
+                                                      Feather.video,
+                                                      color: Colors.black,
+                                                      size:
+                                                          kToolbarHeight * 0.65,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            ]),
-
-
-                          Row( 
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: <Widget>[
-                          Container(
-                              margin: const EdgeInsets.only(top: 30),
-                              child: Center(
-                                child: Container(
-                                  height: kToolbarHeight * 1.80,
-                                  width: kToolbarHeight * 1.80,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.all(
-                                      Radius.circular(50.0),
-                                    ),
-                                    color: Theme.of(context).canvasColor,
-                                  ),
-                                  child: new Material(
-                                    color: Theme.of(context).cardColor,
-                                    borderRadius: BorderRadius.all(
-                                      Radius.circular(50.0),
-                                    ),
-                                    child: InkWell(
-                                      borderRadius: BorderRadius.all(
-                                        Radius.circular(50.0),
-                                      ),
-                                      onTap: () async {
-                         PickedFile pickedFile = await ImagePicker().getImage(
-                         source: ImageSource.gallery,
-                           maxWidth: 1800,
-                            maxHeight: 1800,
-                            );
-                             _cropImage(pickedFile.path);
-                        
-                      },
-                                      child: Center(
-                                        child: Icon(
-                                          Feather.image,
-                                          size: kToolbarHeight * 0.65,
+                                      ]),
+                                  Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: <Widget>[
+                                        Container(
+                                          margin:
+                                              const EdgeInsets.only(top: 30),
+                                          child: Center(
+                                            child: Container(
+                                              height: kToolbarHeight * 1.80,
+                                              width: kToolbarHeight * 1.80,
+                                              decoration: BoxDecoration(
+                                                borderRadius: BorderRadius.all(
+                                                  Radius.circular(50.0),
+                                                ),
+                                                color: Theme.of(context)
+                                                    .canvasColor,
+                                              ),
+                                              child: new Material(
+                                                color:
+                                                    Theme.of(context).cardColor,
+                                                borderRadius: BorderRadius.all(
+                                                  Radius.circular(50.0),
+                                                ),
+                                                child: InkWell(
+                                                  borderRadius:
+                                                      BorderRadius.all(
+                                                    Radius.circular(50.0),
+                                                  ),
+                                                  onTap: () async {
+                                                    PickedFile pickedFile =
+                                                        await ImagePicker()
+                                                            .getImage(
+                                                      source:
+                                                          ImageSource.gallery,
+                                                      maxWidth: 1800,
+                                                      maxHeight: 1800,
+                                                    );
+                                                    _cropImage(pickedFile.path);
+                                                  },
+                                                  child: Center(
+                                                    child: Icon(
+                                                      Feather.image,
+                                                      size:
+                                                          kToolbarHeight * 0.65,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            
-                            SizedBox(width: 25),
-                            Container(
-                              margin: const EdgeInsets.only(top: 30),
-                              child: Center(
-                                child: Container(
-                                  height: kToolbarHeight * 1.80,
-                                  width: kToolbarHeight * 1.80,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.all(
-                                      Radius.circular(50.0),
-                                    ),
-                                    color: Theme.of(context).canvasColor,
-                                  ),
-                                  child: new Material(
-                                    color: Theme.of(context).cardColor,
-                                    borderRadius: BorderRadius.all(
-                                      Radius.circular(50.0),
-                                    ),
-                                    child: InkWell(
-                                      borderRadius: BorderRadius.all(
-                                        Radius.circular(50.0),
-                                      ),
-                                      onTap: () async {
-                                        isVideo = true;
-                                     Future<File>   video1 =
-                            ImagePicker.pickVideo(source: ImageSource.gallery);
+                                        SizedBox(width: 25),
+                                        Container(
+                                          margin:
+                                              const EdgeInsets.only(top: 30),
+                                          child: Center(
+                                            child: Container(
+                                              height: kToolbarHeight * 1.80,
+                                              width: kToolbarHeight * 1.80,
+                                              decoration: BoxDecoration(
+                                                borderRadius: BorderRadius.all(
+                                                  Radius.circular(50.0),
+                                                ),
+                                                color: Theme.of(context)
+                                                    .canvasColor,
+                                              ),
+                                              child: new Material(
+                                                color:
+                                                    Theme.of(context).cardColor,
+                                                borderRadius: BorderRadius.all(
+                                                  Radius.circular(50.0),
+                                                ),
+                                                child: InkWell(
+                                                  borderRadius:
+                                                      BorderRadius.all(
+                                                    Radius.circular(50.0),
+                                                  ),
+                                                  onTap: () async {
+                                                    isVideo = true;
+                                                    Future<File> video1 =
+                                                        ImagePicker.pickVideo(
+                                                            source: ImageSource
+                                                                .gallery);
 
-                        video1.then((file) async {
-                          setState(() {
-                            _media = file;
-                            _controller = VideoPlayerController.file(_media)
-                              ..initialize().then(
-                                (_) {
-                                  setState(() {});
-                                  _controller.setLooping(true);
-                                  _controller.play();
-                                  _controller.setVolume(0);
-                                },
-                              );
-                          });
-                          
-                       });
-                      },
-                                      child: Center(
-                                        child: Icon(
-                                          Feather.upload,
-                                          size: kToolbarHeight * 0.65,
+                                                    video1.then((file) async {
+                                                      setState(() {
+                                                        _media = file;
+                                                        _controller =
+                                                            VideoPlayerController
+                                                                .file(_media)
+                                                              ..initialize()
+                                                                  .then(
+                                                                (_) {
+                                                                  setState(
+                                                                      () {});
+                                                                  _controller
+                                                                      .setLooping(
+                                                                          true);
+                                                                  _controller
+                                                                      .play();
+                                                                  _controller
+                                                                      .setVolume(
+                                                                          0);
+                                                                },
+                                                              );
+                                                      });
+                                                    });
+                                                  },
+                                                  child: Center(
+                                                    child: Icon(
+                                                      Feather.upload,
+                                                      size:
+                                                          kToolbarHeight * 0.65,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-
-                          ])
-                            ])
-                          )
-
-
-
+                                      ])
+                                      
+                                ]))
                           : ClipRRect(
                               borderRadius: BorderRadius.circular(0),
                               child: isVideo == false
@@ -431,60 +468,52 @@ class StoryTellerAddPhoto extends State<PhotoForm> {
                             },
                           )
                         : Container(),
-
-
                   ],
                 ),
                 SizedBox(
                   height: 30.0,
                 ),
                 _media == null
-                
-                ? Container()
-                : Padding(
-                  padding: EdgeInsets.only(left: 20.0, right: 20.0),
-                  child: TextFormField(
-                    inputFormatters: [
-                      new LengthLimitingTextInputFormatter(200),
-                    ],
-                    controller: descriptionController,
-                    keyboardType: TextInputType.text,
-                    minLines: 3,
-                    maxLines: null,
-                    autofocus: false,
-                    validator: Validators.compose([
-                      Validators.required('Description is required'),
-                      Validators.minLength(
-                          10, 'Description cannot be less than 10 characters'),
-                      Validators.maxLength(200,
-                          'Description cannot be greater than 200 characters'),
-                    ]),
-                    decoration: InputDecoration(
-                      hintText: AppLocalizations.instance.text('writehere'),
-                      filled: true,
-                      fillColor: Theme.of(context).cardColor,
-                      border: OutlineInputBorder(
-                        borderSide: BorderSide.none,
-                        borderRadius: BorderRadius.circular(15.0),
+                    ? Container()
+                    : Padding(
+                        padding: EdgeInsets.only(left: 20.0, right: 20.0),
+                        child: TextFormField(
+                          inputFormatters: [
+                            new LengthLimitingTextInputFormatter(200),
+                          ],
+                          controller: descriptionController,
+                          keyboardType: TextInputType.text,
+                          minLines: 3,
+                          maxLines: null,
+                          autofocus: false,
+                          validator: Validators.compose([
+                            Validators.required('Description is required'),
+                            Validators.minLength(1,
+                                'Description cannot be less than 10 characters'),
+                            Validators.maxLength(200,
+                                'Description cannot be greater than 200 characters'),
+                          ]),
+                          decoration: InputDecoration(
+                            hintText:
+                                AppLocalizations.instance.text('writehere'),
+                            filled: true,
+                            fillColor: Theme.of(context).cardColor,
+                            border: OutlineInputBorder(
+                              borderSide: BorderSide.none,
+                              borderRadius: BorderRadius.circular(15.0),
+                            ),
+                            contentPadding:
+                                EdgeInsets.fromLTRB(15.0, 15.0, 15.0, 15.0),
+                          ),
+                        ),
                       ),
-                      contentPadding:
-                          EdgeInsets.fromLTRB(15.0, 15.0, 15.0, 15.0),
-                    ),
-                  ),
-                ),
-                
               ],
             ),
           ),
-          
         ),
-
-        
       ),
     );
   }
-
-  
 
   void savedShow() {
     showDialog(
@@ -595,13 +624,12 @@ class StoryTellerAddPhoto extends State<PhotoForm> {
                         ),
                       ),
                       onPressed: () async {
-                         PickedFile pickedFile = await ImagePicker().getImage(
-                         source: ImageSource.gallery,
-                           maxWidth: 1800,
-                            maxHeight: 1800,
-                            );
-                             _cropImage(pickedFile.path);
-                        
+                        PickedFile pickedFile = await ImagePicker().getImage(
+                          source: ImageSource.gallery,
+                          maxWidth: 1800,
+                          maxHeight: 1800,
+                        );
+                        _cropImage(pickedFile.path);
                       },
                     ),
                     new FlatButton(
@@ -613,13 +641,12 @@ class StoryTellerAddPhoto extends State<PhotoForm> {
                         ),
                       ),
                       onPressed: () async {
-                         PickedFile pickedFile = await ImagePicker().getImage(
-                         source: ImageSource.camera,
-                           maxWidth: 1800,
-                            maxHeight: 1800,
-                            );
-                             _cropImage(pickedFile.path);
-                        
+                        PickedFile pickedFile = await ImagePicker().getImage(
+                          source: ImageSource.camera,
+                          maxWidth: 1800,
+                          maxHeight: 1800,
+                        );
+                        _cropImage(pickedFile.path);
                       },
                     ),
                     new FlatButton(
@@ -747,10 +774,10 @@ class StoryTellerAddPhoto extends State<PhotoForm> {
 
   _cropImage(filePath) async {
     File croppedImage = await ImageCropper.cropImage(
-      sourcePath: filePath,
-      maxWidth: 1080,
-      maxHeight: 1080,
-      aspectRatioPresets: Platform.isAndroid
+        sourcePath: filePath,
+        maxWidth: 1080,
+        maxHeight: 1080,
+        aspectRatioPresets: Platform.isAndroid
             ? [
                 CropAspectRatioPreset.square,
                 //CropAspectRatioPreset.ratio3x2,
@@ -765,29 +792,26 @@ class StoryTellerAddPhoto extends State<PhotoForm> {
                 CropAspectRatioPreset.ratio4x3,
                 // CropAspectRatioPreset.ratio5x3,
                 CropAspectRatioPreset.ratio5x4,
-                
+
                 //CropAspectRatioPreset.ratio7x5,
                 // CropAspectRatioPreset.ratio16x9
               ],
-              
-         iosUiSettings: IOSUiSettings(
-         //title: 'Crop Image',
-         cancelButtonTitle: 'Cancel',
-         doneButtonTitle: 'Done',
-         rectX: 1,
-         rectY: 1,
-         rectWidth: 19080,
-         rectHeight: 19080,
-         hidesNavigationBar: true,
-         resetButtonHidden: true,
-         minimumAspectRatio: 1.0,
-         // rotateClockwiseButtonHidden: true,
-        )
-    );
+        iosUiSettings: IOSUiSettings(
+          //title: 'Crop Image',
+          cancelButtonTitle: 'Cancel',
+          doneButtonTitle: 'Done',
+          rectX: 1,
+          rectY: 1,
+          rectWidth: 19080,
+          rectHeight: 19080,
+          hidesNavigationBar: true,
+          resetButtonHidden: true,
+          minimumAspectRatio: 1.0,
+          // rotateClockwiseButtonHidden: true,
+        ));
     if (croppedImage != null) {
       _media = croppedImage;
       setState(() {});
-      
     }
   }
 

@@ -807,9 +807,16 @@ class _HomePageState extends State<SearchTabPhoto> {
                                                       ),
                                                       Center(
                                                         child: Text(
-                                                          AppLocalizations
-                                                              .instance
-                                                              .text('comments'),
+                                                          snapshot
+                                                                  .data
+                                                                  .data[index]
+                                                                  .commentcount
+                                                                  .toString() +
+                                                              ' ' +
+                                                              AppLocalizations
+                                                                  .instance
+                                                                  .text(
+                                                                      'comments'),
                                                           textAlign:
                                                               TextAlign.start,
                                                           style: TextStyle(
@@ -854,8 +861,10 @@ class _HomePageState extends State<SearchTabPhoto> {
                                                             ),
                                                             Text(
                                                               AppLocalizations
-                                                                  .instance
-                                                                  .text('save'),
+                                                                      .instance
+                                                                      .text(
+                                                                          'save') +
+                                                                  "   ",
                                                               textAlign:
                                                                   TextAlign
                                                                       .start,
@@ -881,10 +890,7 @@ class _HomePageState extends State<SearchTabPhoto> {
                                                               width: 5.0,
                                                             ),
                                                             Text(
-                                                              AppLocalizations
-                                                                  .instance
-                                                                  .text(
-                                                                      'remove'),
+                                                              'Saved',
                                                               textAlign:
                                                                   TextAlign
                                                                       .start,

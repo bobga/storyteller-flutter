@@ -117,6 +117,9 @@ class Repository {
           toUsernameController) =>
       storyTellerApiProvider.fetchUserConversationsList(toUsernameController);
 
+  Future<MessageModel> deleteConversation(int toUserId) =>
+      storyTellerApiProvider.deleteConversation(toUserId);
+
   Future<MessageModel> readNotifications() =>
       storyTellerApiProvider.readNotifications();
 }

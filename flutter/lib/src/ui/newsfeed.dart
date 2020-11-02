@@ -15,6 +15,7 @@ import '../blocs/photos_bloc.dart';
 import 'package:connectivity/connectivity.dart';
 import 'dart:async';
 import 'dart:io';
+import 'dart:convert';
 import 'package:Storyteller/src/constant/utils.dart';
 import 'package:mime/mime.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -28,6 +29,14 @@ import 'package:pinch_zoom_image_last/pinch_zoom_image_last.dart';
 import 'package:flutter_vibrate/flutter_vibrate.dart';
 import 'package:progress_indicators/progress_indicators.dart';
 import 'package:page_transition/page_transition.dart';
+import 'package:image_cropper/image_cropper.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:video_player/video_player.dart';
+import 'package:async/async.dart';
+import 'package:Storyteller/src/constant/httpService.dart';
+
+import 'package:http/http.dart' as http;
+import 'package:path/path.dart' as path;
 
 class PhotoFeed extends StatefulWidget {
   @override
@@ -37,6 +46,11 @@ class PhotoFeed extends StatefulWidget {
 }
 
 class NewsFeedState extends State<PhotoFeed> {
+  File _media;
+  bool isVideo = false;
+
+  VideoPlayerController _controller;
+  Duration _duration;
   StreamSubscription connectivitySubscription;
   Timer _timer, timer;
   final FlareControls flareControls = FlareControls();
@@ -212,11 +226,449 @@ class NewsFeedState extends State<PhotoFeed> {
     });
   }
 
+  void sendUploadFile() async {
+    final String url =
+        "${NetworkUtils.urlBase}${NetworkUtils.serverApi}stories";
+
+    var request = new http.MultipartRequest("POST", Uri.parse(url));
+    print(url);
+    Map<String, String> headers = {
+      'Content-type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': 'Bearer ' + await fetchToken(),
+    };
+
+    var stream_video =
+        new http.ByteStream(DelegatingStream.typed(_media.openRead()));
+    var length_video = await _media.length();
+
+    print(path.basename(_media.path));
+    print(length_video);
+
+    var multipartFile = new http.MultipartFile(
+        'media', stream_video, length_video,
+        filename: path.basename(_media.path));
+
+    request.files.add(multipartFile);
+    if (isVideo == true) {
+      request.fields['duration'] = _duration.toString();
+      request.fields['type'] = 'video';
+    } else {
+      request.fields['duration'] = '5';
+      request.fields['type'] = 'image';
+    }
+
+    request.headers.addAll(headers);
+    var response = await request.send();
+    print(response.statusCode);
+
+    response.stream.transform(utf8.decoder).listen((value) {
+      print(value);
+    });
+  }
+
+  Future<String> fetchToken() async {
+    var client = await HttpService().getClient();
+    return client.credentials.accessToken.toString();
+  }
+
   checkFileType(String url) {
     String mimeStr = lookupMimeType(url);
     var fileType = mimeStr.split('/');
     print(fileType[0]);
     return fileType[0];
+  }
+
+  _cropImage(filePath) async {
+    File croppedImage = await ImageCropper.cropImage(
+      sourcePath: filePath,
+      maxWidth: 1080,
+      maxHeight: 1080,
+    );
+    if (croppedImage != null) {
+      _media = croppedImage;
+      Navigator.pop(context);
+      setState(() {});
+      sendUploadFile();
+      Scaffold.of(context).showSnackBar(
+        SnackBar(
+          margin: EdgeInsets.only(bottom: 38, left: 30, right: 30),
+          elevation: 0,
+          backgroundColor: Colors.black,
+          content: Text(
+            "Your story will appear shortly",
+            textAlign: TextAlign.center,
+            style:
+                TextStyle(color: Colors.white, fontWeight: FontWeight.normal),
+          ),
+          duration: Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  void checkMediaType() {
+    final screenSize = MediaQuery.of(context).size;
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Center(
+            child: Column(children: <Widget>[
+              Image.network(
+                'https://images.emojiterra.com/mozilla/512px/1f389.png',
+                width: 80,
+                height: 80,
+              ),
+              SizedBox(height: 15),
+              Text(
+                'Upload Story',
+                style: TextStyle(
+                  fontFamily: 'SFProDisplayBold',
+                  fontSize: 20.5,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ]),
+          ),
+          content: Container(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  'Select the file type to upload, then you \ncan choose from the gallery or camera.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 15.5,
+                    fontFamily: 'SFProDisplayMedium',
+                    color: Colors.black54,
+                  ),
+                ),
+                SizedBox(height: 30),
+                const Divider(
+                  color: Color.fromRGBO(224, 224, 224, 1),
+                  height: 1,
+                  thickness: 0,
+                  indent: 0,
+                  endIndent: 0,
+                ),
+                ButtonTheme(
+                  minWidth: screenSize.width,
+                  height: 45.0,
+                  child: FlatButton(
+                    //splashColor: Colors.transparent,
+                    //highlightColor: Colors.transparent,
+                    child: Text(
+                      AppLocalizations.instance.text('image'),
+                      style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 16.3,
+                          fontFamily: 'SFProDisplayMedium'),
+                    ),
+                    color: Colors.transparent,
+                    shape: new RoundedRectangleBorder(
+                        borderRadius: BorderRadius.only(
+                            topRight: Radius.circular(0.0),
+                            topLeft: Radius.circular(0.0))),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      isVideo = false;
+                      _getImage();
+                    },
+                  ),
+                ),
+                const Divider(
+                  color: Color.fromRGBO(224, 224, 224, 1),
+                  height: 1,
+                  thickness: 0,
+                  indent: 0,
+                  endIndent: 0,
+                ),
+                ButtonTheme(
+                  minWidth: screenSize.width,
+                  height: 45.0,
+                  child: FlatButton(
+                    //splashColor: Colors.transparent,
+                    //highlightColor: Colors.transparent,
+                    child: Text(
+                      AppLocalizations.instance.text('video'),
+                      style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 16.3,
+                          fontFamily: 'SFProDisplayMedium'),
+                    ),
+                    color: Colors.transparent,
+                    shape: new RoundedRectangleBorder(
+                        borderRadius: BorderRadius.only(
+                            topRight: Radius.circular(0.0),
+                            topLeft: Radius.circular(0.0))),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      isVideo = true;
+                      _getVideo();
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15.0),
+          ),
+        );
+      },
+    );
+  }
+
+  Future _getImage() async {
+    final screenSize = MediaQuery.of(context).size;
+    try {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Center(
+              child: Text(
+                'Image Story',
+                style: TextStyle(
+                  fontFamily: 'SFProDisplayBold',
+                  fontSize: 20.5,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            content: Container(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Text(
+                    'You can upload a photo or take a new one.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 15.5,
+                      fontFamily: 'SFProDisplayMedium',
+                      color: Colors.black54,
+                    ),
+                  ),
+                  SizedBox(height: 30),
+                  const Divider(
+                    color: Color.fromRGBO(224, 224, 224, 1),
+                    height: 1,
+                    thickness: 0,
+                    indent: 0,
+                    endIndent: 0,
+                  ),
+                  ButtonTheme(
+                    minWidth: screenSize.width - 45.8,
+                    height: 45.0,
+                    child: FlatButton(
+                      //splashColor: Colors.transparent,
+                      //highlightColor: Colors.transparent,
+                      child: Text(
+                        AppLocalizations.instance.text('gallery'),
+                        style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 16.3,
+                            fontFamily: 'SFProDisplayMedium'),
+                      ),
+                      color: Colors.transparent,
+                      shape: new RoundedRectangleBorder(
+                          borderRadius: BorderRadius.only(
+                              topRight: Radius.circular(10.0),
+                              topLeft: Radius.circular(10.0))),
+                      onPressed: () async {
+                        PickedFile pickedFile = await ImagePicker().getImage(
+                          source: ImageSource.gallery,
+                          maxWidth: 1800,
+                          maxHeight: 1800,
+                        );
+
+                        _cropImage(pickedFile.path);
+                      },
+                    ),
+                  ),
+                  const Divider(
+                    color: Color.fromRGBO(224, 224, 224, 1),
+                    height: 1,
+                    thickness: 0,
+                    indent: 0,
+                    endIndent: 0,
+                  ),
+                  ButtonTheme(
+                    minWidth: screenSize.width - 45.8,
+                    height: 45.0,
+                    child: FlatButton(
+                      //splashColor: Colors.transparent,
+                      //highlightColor: Colors.transparent,
+                      child: Text(
+                        AppLocalizations.instance.text('camera'),
+                        style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 16.3,
+                            fontFamily: 'SFProDisplayMedium'),
+                      ),
+                      color: Colors.transparent,
+                      shape: new RoundedRectangleBorder(
+                          borderRadius: BorderRadius.only(
+                              topRight: Radius.circular(10.0),
+                              topLeft: Radius.circular(10.0))),
+                      onPressed: () async {
+                        PickedFile pickedFile = await ImagePicker().getImage(
+                          source: ImageSource.camera,
+                          maxWidth: 1800,
+                          maxHeight: 1800,
+                        );
+                        _cropImage(pickedFile.path);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15.0),
+            ),
+          );
+        },
+      );
+    } catch (error) {}
+  }
+
+  Future _getVideo() async {
+    final screenSize = MediaQuery.of(context).size;
+    try {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Center(
+              child: Text(
+                'Video Story',
+                style: TextStyle(
+                  fontFamily: 'SFProDisplayBold',
+                  fontSize: 20.5,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            content: Container(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Text(
+                    'You can upload a video or take a new one.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 15.5,
+                      fontFamily: 'SFProDisplayMedium',
+                      color: Colors.black54,
+                    ),
+                  ),
+                  SizedBox(height: 30),
+                  const Divider(
+                    color: Color.fromRGBO(224, 224, 224, 1),
+                    height: 1,
+                    thickness: 0,
+                    indent: 0,
+                    endIndent: 0,
+                  ),
+                  ButtonTheme(
+                    minWidth: screenSize.width - 45.8,
+                    height: 45.0,
+                    child: FlatButton(
+                      //splashColor: Colors.transparent,
+                      //highlightColor: Colors.transparent,
+                      child: Text(
+                        AppLocalizations.instance.text('gallery'),
+                        style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 16.3,
+                            fontFamily: 'SFProDisplayMedium'),
+                      ),
+                      color: Colors.transparent,
+                      shape: new RoundedRectangleBorder(
+                          borderRadius: BorderRadius.only(
+                              topRight: Radius.circular(10.0),
+                              topLeft: Radius.circular(10.0))),
+                      onPressed: () async {
+                        Future<File> video1 =
+                            ImagePicker.pickVideo(source: ImageSource.gallery);
+
+                        video1.then((file) async {
+                          setState(() {
+                            _media = file;
+                            _controller = VideoPlayerController.file(_media)
+                              ..initialize().then(
+                                (_) {
+                                  setState(() {});
+                                  _duration = _controller.value.duration;
+                                  sendUploadFile();
+                                },
+                              );
+                          });
+                          Navigator.pop(context);
+                        });
+                      },
+                    ),
+                  ),
+                  const Divider(
+                    color: Color.fromRGBO(224, 224, 224, 1),
+                    height: 1,
+                    thickness: 0,
+                    indent: 0,
+                    endIndent: 0,
+                  ),
+                  ButtonTheme(
+                    minWidth: screenSize.width - 45.8,
+                    height: 45.0,
+                    child: FlatButton(
+                      //splashColor: Colors.transparent,
+                      //highlightColor: Colors.transparent,
+                      child: Text(
+                        AppLocalizations.instance.text('camera'),
+                        style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 16.3,
+                            fontFamily: 'SFProDisplayMedium'),
+                      ),
+                      color: Colors.transparent,
+                      shape: new RoundedRectangleBorder(
+                          borderRadius: BorderRadius.only(
+                              topRight: Radius.circular(10.0),
+                              topLeft: Radius.circular(10.0))),
+                      onPressed: () async {
+                        Future<File> video2 = ImagePicker.pickVideo(
+                            source: ImageSource.camera,
+                            maxDuration: Duration(seconds: 30));
+
+                        video2.then((file) async {
+                          setState(() {
+                            _media = file;
+                            _controller = VideoPlayerController.file(_media)
+                              ..initialize().then(
+                                (_) {
+                                  setState(() {});
+                                  _duration = _controller.value.duration;
+                                  sendUploadFile();
+                                },
+                              );
+                          });
+                          Navigator.pop(context);
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15.0),
+            ),
+          );
+        },
+      );
+    } catch (error) {}
   }
 
   @override
@@ -229,18 +681,27 @@ class NewsFeedState extends State<PhotoFeed> {
             automaticallyImplyLeading: false,
             actions: [
               Container(
-                  child: IconButton(
-                icon: Icon(Feather.message_circle, size: 30),
-                padding: EdgeInsets.only(right: 20.0),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ConversationListForm(0),
-                    ),
-                  );
-                },
-              )),
+                  child: Row(children: <Widget>[
+                GestureDetector(
+                  onTap: () {
+                    checkMediaType();
+                  },
+                  child: Icon(Feather.plus_circle, size: 29),
+                ),
+                SizedBox(width: 18),
+                IconButton(
+                  icon: Icon(Feather.message_circle, size: 30),
+                  padding: EdgeInsets.only(right: 20.0),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ConversationListForm(0),
+                      ),
+                    );
+                  },
+                )
+              ])),
             ],
             title: Text(
               'teling',
@@ -268,7 +729,7 @@ class NewsFeedState extends State<PhotoFeed> {
                           Container(
                             padding: const EdgeInsets.only(
                               top: 0.0,
-                              bottom: 3.0,
+                              bottom: 6.0,
                               left: 10,
                               right: 10,
                             ),
@@ -276,8 +737,10 @@ class NewsFeedState extends State<PhotoFeed> {
                               height: 90.0,
                               child: StreamBuilder(
                                 stream: bloc.allStories,
-                                builder: (context,
-                                    AsyncSnapshot<UserModel> snapshot) {
+                                builder: (
+                                  context,
+                                  AsyncSnapshot<UserModel> snapshot,
+                                ) {
                                   if (snapshot.hasData) {
                                     if (snapshot.data.datas.length == 0) {
                                       return Center(
@@ -311,17 +774,17 @@ class NewsFeedState extends State<PhotoFeed> {
                                                             borderRadius:
                                                                 new BorderRadius
                                                                         .circular(
-                                                                    30.0),
+                                                                    100.0),
                                                             child:
                                                                 GestureDetector(
                                                               child:
                                                                   CachedNetworkImage(
                                                                 height:
                                                                     kToolbarHeight /
-                                                                        0.9,
+                                                                        0.83,
                                                                 width:
                                                                     kToolbarHeight /
-                                                                        0.9,
+                                                                        0.83,
                                                                 fit: BoxFit
                                                                     .cover,
                                                                 placeholder:
@@ -346,14 +809,28 @@ class NewsFeedState extends State<PhotoFeed> {
                                                                     PageTransition(
                                                                       duration: Duration(
                                                                           milliseconds:
-                                                                              100),
+                                                                              1),
                                                                       type: PageTransitionType
                                                                           .fade,
-                                                                      child: Stories(snapshot
-                                                                          .data
-                                                                          .datas[
-                                                                              index]
-                                                                          .id),
+                                                                      child:
+                                                                          Stories(
+                                                                        snapshot
+                                                                            .data
+                                                                            .datas[index]
+                                                                            .id,
+                                                                        snapshot
+                                                                            .data
+                                                                            .datas[index]
+                                                                            .name,
+                                                                        snapshot
+                                                                            .data
+                                                                            .datas[index]
+                                                                            .avatar,
+                                                                        snapshot
+                                                                            .data
+                                                                            .datas[index]
+                                                                            .badge,
+                                                                      ),
                                                                     ));
                                                               },
                                                             ),
@@ -371,6 +848,8 @@ class NewsFeedState extends State<PhotoFeed> {
                                                                         index]
                                                                     .name,
                                                                 style: TextStyle(
+                                                                    fontFamily:
+                                                                        "SFProDisplayMedium",
                                                                     fontSize:
                                                                         13),
                                                               ),
@@ -490,7 +969,7 @@ class NewsFeedState extends State<PhotoFeed> {
                                           left: 15.0,
                                           right: 15.0,
                                           bottom: 10.0,
-                                          top: 10.0),
+                                          top: 15.0),
                                       child: Row(
                                         children: [
                                           ClipRRect(
@@ -1033,8 +1512,12 @@ class NewsFeedState extends State<PhotoFeed> {
                                               ),
                                               Center(
                                                 child: Text(
-                                                  AppLocalizations.instance
-                                                      .text('comments'),
+                                                  snapshot.data.data[index]
+                                                          .commentcount
+                                                          .toString() +
+                                                      ' ' +
+                                                      AppLocalizations.instance
+                                                          .text('comments'),
                                                   textAlign: TextAlign.start,
                                                   style: TextStyle(
                                                     fontFamily:
@@ -1072,7 +1555,8 @@ class NewsFeedState extends State<PhotoFeed> {
                                                     ),
                                                     Text(
                                                       AppLocalizations.instance
-                                                          .text('save'),
+                                                              .text('save') +
+                                                          "   ",
                                                       textAlign:
                                                           TextAlign.start,
                                                       style: TextStyle(
@@ -1094,8 +1578,7 @@ class NewsFeedState extends State<PhotoFeed> {
                                                       width: 5.0,
                                                     ),
                                                     Text(
-                                                      AppLocalizations.instance
-                                                          .text('remove'),
+                                                      'Saved',
                                                       textAlign:
                                                           TextAlign.start,
                                                       style: TextStyle(
@@ -1112,7 +1595,7 @@ class NewsFeedState extends State<PhotoFeed> {
                                 ),
                               ),
                               Container(
-                                padding: const EdgeInsets.only(bottom: 10.0),
+                                padding: const EdgeInsets.only(bottom: 5.0),
                                 child: const Divider(
                                   color: Color.fromRGBO(207, 207, 207, 1),
                                   height: 1,
