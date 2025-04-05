@@ -32,7 +32,7 @@ A modern social media application built with Flutter and Laravel, inspired by In
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/storyteller-flutter.git
+git clone https://github.com/bobga/storyteller-flutter.git
 ```
 
 2. Navigate to the Flutter project directory:
